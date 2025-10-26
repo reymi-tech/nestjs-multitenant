@@ -131,7 +131,7 @@ export default [
 
   // Configuración para archivos de test
   {
-    files: ['tests/**/*.{ts,js}', '**/*.spec.ts', '**/*.test.ts'],
+    files: ['test/**/*.{ts,js}', '**/*.spec.ts', '**/*.test.ts'],
     languageOptions: {
       globals: {
         ...globals.node,

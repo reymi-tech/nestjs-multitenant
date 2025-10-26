@@ -1,0 +1,50 @@
+💻 Source:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/**
+
+🧪 Tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - tests/**
+          - .env.test
+
+📝 Documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - README.md
+
+🐳 Build:
+  - changed-files:
+      - any-glob-to-any-file:
+
+⚙️ Configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .editorconfig
+          - .gitignore
+          - .npmrc
+          - .nvmrc
+          - lint-staged.config.mjs
+          - commitlint.config.mjs
+
+📦 Dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - pnpm-lock.yaml
+
+🚀 CI/CD:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/workflows/**
+          - .github/labeler.yml
+          - .husky/**
+
+🏠 Github Configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/ISSUE_TEMPLATE/**
+          - .github/CODEOWNERS
+          - .github/labels.yml
+          - .github/pull_request_template.md
