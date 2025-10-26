@@ -17,6 +17,8 @@
 🐳 Build:
   - changed-files:
       - any-glob-to-any-file:
+          - tsconfig.json
+          - tsconfig.build.json
 
 ⚙️ Configuration:
   - changed-files:
