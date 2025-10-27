@@ -6,7 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REGEX_TENANT_NAME, TenantStatus } from 'src/constants';
+import { EntityRegistry } from 'src/config/entity.registry';
+import { EntityName, REGEX_TENANT_NAME, TenantStatus } from 'src/constants';
+import { validateEntityNames } from 'src/utils/entity-registry.utils';
 import { DataSource, IsNull, Repository } from 'typeorm';
 
 import { CreateTenantDto } from '../dto/create-tenant.dto';
@@ -336,9 +338,47 @@ export class TenantAdminService implements ITenantAdminService {
     dto: CreateTenantDto | UpdateTenantDto,
     existingConfig?: IEntityConfig,
   ): IEntityConfig {
-    // TODO: implement entity config processing with entity registry
-    console.log('Processing entity config:', dto, existingConfig);
-    throw new Error('Method not implemented.');
+    const registry = EntityRegistry.getInstance();
+    let enabledEntities: EntityName[] = existingConfig?.enabledEntities || [];
+    let customSettings: Record<string, unknown> =
+      existingConfig?.customSettings || {};
+    let preset: string | undefined = existingConfig?.preset;
+
+    // Process entity preset if provided
+    if (dto.entityPreset) {
+      preset = dto.entityPreset;
+      const presetEntities = registry.getPreset(dto.entityPreset);
+      if (presetEntities.length > 0) {
+        enabledEntities = presetEntities;
+      }
+    }
+
+    // Process individual entity enablement if provided
+    if (dto.enableEntities && dto.enableEntities.length > 0) {
+      const validation = validateEntityNames(dto.enableEntities);
+      enabledEntities = validation.valid;
+
+      if (validation.invalid.length > 0) {
+        throw new BadRequestException(
+          `Invalid entities ignored: ${validation.invalid.join(', ')}`,
+        );
+      }
+    }
+
+    if (dto.entityCustomSettings) {
+      customSettings = { ...customSettings, ...dto.entityCustomSettings };
+    }
+
+    if (enabledEntities.length === 0) {
+      enabledEntities = registry.getPreset('basic');
+      preset = 'basic';
+    }
+
+    return {
+      enabledEntities,
+      customSettings,
+      preset,
+    };
   }
 
   /**
