@@ -3,6 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Tenant } from '../entities/tenant.entity';
 import { TENANT_ADMIN_SERVICE } from '../interface/core.interface';
+import {
+  MULTI_TENANT_CONFIG_SERVICE,
+  MultiTenantConfigService,
+} from '../service/multi-tenant-config.service';
 import { TenantAdminService } from '../service/tenant-admin.service';
 
 @Module({
@@ -11,6 +15,10 @@ import { TenantAdminService } from '../service/tenant-admin.service';
     {
       provide: TENANT_ADMIN_SERVICE,
       useClass: TenantAdminService,
+    },
+    {
+      provide: MULTI_TENANT_CONFIG_SERVICE,
+      useClass: MultiTenantConfigService,
     },
   ],
   exports: [TENANT_ADMIN_SERVICE, TypeOrmModule],

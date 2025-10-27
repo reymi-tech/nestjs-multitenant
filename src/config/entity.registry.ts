@@ -7,14 +7,18 @@ import {
   TenantPreset,
 } from 'src/constants';
 
+export type EntityRegistryType = Record<
+  EntityName,
+  EntityTarget<unknown> | string
+>;
+
 /**
  * Entity Registry class for managing tenant entities
  */
 export class EntityRegistry {
   private static instance: EntityRegistry;
   // Registry stores either a TypeORM Entity target (class) or a string identifier
-  private entityRegistry: Record<EntityName, EntityTarget<unknown> | string> =
-    {};
+  private entityRegistry: EntityRegistryType = {};
   private entityPresets: Record<TenantPreset, EntityName[]> = {
     ...DEFAULT_TENANT_ENTITY_PRESETS,
   };
@@ -79,7 +83,7 @@ export class EntityRegistry {
     return this.entityRegistry[name as EntityName];
   }
 
-  getAllEntities(): Record<EntityName, EntityTarget<unknown> | string> {
+  getAllEntities(): EntityRegistryType {
     return { ...this.entityRegistry };
   }
 

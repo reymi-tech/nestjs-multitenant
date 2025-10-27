@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityRegistry } from 'src/config/entity.registry';
@@ -20,7 +22,12 @@ import {
   ITenantAdminService,
   TenantStats,
 } from '../interface/core.interface';
-import { IEntityConfig, ITenant } from '../interface/tenant.interface';
+import {
+  IEntityConfig,
+  IMultiTenantConfigService,
+  ITenant,
+} from '../interface/tenant.interface';
+import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 
 /**
  * Service for administrative tenant management
@@ -36,6 +43,10 @@ export class TenantAdminService implements ITenantAdminService {
     @InjectRepository(Tenant, 'admin')
     private readonly tenantRepository: Repository<Tenant>,
     private readonly dataSource: DataSource,
+
+    @Optional()
+    @Inject(MULTI_TENANT_CONFIG_SERVICE)
+    private readonly configService?: IMultiTenantConfigService,
   ) {}
 
   /**
@@ -80,9 +91,7 @@ export class TenantAdminService implements ITenantAdminService {
 
       const savedTenant = await this.tenantRepository.save(tenant);
 
-      // TODO: validate config service is enable auto-creation tenant schema
-      const isAutoCreateSchemasEnabled = true;
-      if (isAutoCreateSchemasEnabled) {
+      if (this.configService?.isAutoCreateSchemasEnabled()) {
         await this.createTenantSchema(tenantDto.code);
       }
 
