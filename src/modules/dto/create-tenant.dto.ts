@@ -9,7 +9,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { EntityName, REGEX_TENANT_NAME, TenantStatus } from 'src/constants';
+
+import { EntityName, REGEX_TENANT_NAME, TenantStatus } from '../../constants';
 
 export class CreateTenantDto {
   /**
@@ -69,7 +70,7 @@ export class CreateTenantDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  enableEntities?: EntityName[];
+  enabledEntities?: EntityName[];
 
   /**
    * Custom settings for the enabled entities

@@ -1,8 +1,13 @@
 import { ModuleMetadata } from '@nestjs/common';
-import { EntityRegistryType } from 'src/config/entity.registry';
-import { EntityName, TenantPreset, TenantStatus } from 'src/constants';
+import { DataSource } from 'typeorm';
 
-import { ConnectionPoolConfig, DatabaseConfig } from './typeorm.interface';
+import { EntityRegistryType } from '../../config/entity.registry';
+import { EntityName, TenantPreset, TenantStatus } from '../../constants';
+import {
+  ConnectionPoolConfig,
+  DatabaseConfig,
+  IConnectionPoolStats,
+} from './typeorm.interface';
 
 export interface IEntityConfig {
   enabledEntities: string[];
@@ -23,6 +28,18 @@ export interface ITenant {
   deletedAt?: Date;
 }
 
+export interface ITenantContextService {
+  setContext(tenantId: string): void;
+  getTenantSchema(): string | undefined;
+  getContext(): ITenantContext;
+}
+
+export interface ITenantContext {
+  tenantId: string | undefined;
+  tenantSchema: string | undefined;
+  hasTenant: boolean;
+}
+
 export interface TenantResolutionConfig {
   /**
    * Strategy for resolving tenant from request
@@ -36,7 +53,7 @@ export interface TenantResolutionConfig {
   /**
    * Custom resolver function (required when strategy is 'custom')
    */
-  customResolver?: (request: unknown) => string | null;
+  customResolver?: (request: unknown) => string | undefined;
 
   /**
    * Header name for tenant ID (default: 'x-tenant-id')
@@ -131,4 +148,12 @@ export interface IMultiTenantConfigService {
   getSchemaNamingStrategy(): (tenantId: string) => string;
 
   getAllOptions(): MultiTenantModuleOptions;
+}
+
+export interface ITenantConnectionService {
+  getConnectionForSchema(schema: string): Promise<DataSource>;
+  getTenantConnection(): Promise<DataSource>;
+  closeAllConnections(): Promise<void>;
+  getConnectionPoolStats(): IConnectionPoolStats;
+  removeConnection(schema: string): Promise<void>;
 }

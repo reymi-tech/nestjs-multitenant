@@ -1,11 +1,11 @@
 import type { EntityTarget } from 'typeorm';
 
-import { EntityRegistry } from 'src/config/entity.registry';
-import { EntityName, TenantPreset } from 'src/constants';
+import { EntityRegistry } from '../config/entity.registry';
+import { EntityName, TenantPreset } from '../constants';
 import {
   EntityRegistryConfig,
   EntityValidationResult,
-} from 'src/modules/interface/entity-registry.interface';
+} from '../modules/interface/entity-registry.interface';
 
 /**
  * Validate that the specified entity names exist in the registry

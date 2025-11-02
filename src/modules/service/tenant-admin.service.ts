@@ -8,11 +8,11 @@ import {
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityRegistry } from 'src/config/entity.registry';
-import { EntityName, REGEX_TENANT_NAME, TenantStatus } from 'src/constants';
-import { validateEntityNames } from 'src/utils/entity-registry.utils';
 import { DataSource, IsNull, Repository } from 'typeorm';
 
+import { EntityRegistry } from '../../config/entity.registry';
+import { EntityName, REGEX_TENANT_NAME, TenantStatus } from '../../constants';
+import { validateEntityNames } from '../../utils/entity-registry.utils';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { TenantFilterDto } from '../dto/filter-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
@@ -202,7 +202,7 @@ export class TenantAdminService implements ITenantAdminService {
       const updateData = { ...updateTenantDto } as Partial<ITenant>;
 
       if (
-        updateTenantDto.enableEntities ||
+        updateTenantDto.enabledEntities ||
         updateTenantDto.entityPreset ||
         updateTenantDto.entityCustomSettings
       ) {
@@ -363,8 +363,8 @@ export class TenantAdminService implements ITenantAdminService {
     }
 
     // Process individual entity enablement if provided
-    if (dto.enableEntities && dto.enableEntities.length > 0) {
-      const validation = validateEntityNames(dto.enableEntities);
+    if (dto.enabledEntities && dto.enabledEntities.length > 0) {
+      const validation = validateEntityNames(dto.enabledEntities);
       enabledEntities = validation.valid;
 
       if (validation.invalid.length > 0) {
@@ -398,9 +398,9 @@ export class TenantAdminService implements ITenantAdminService {
    */
   private async createTenantSchema(schemaName: string): Promise<void> {
     try {
-      await this.dataSource.query('CREATE SCHEMA IF NOT EXISTS ?', [
-        schemaName,
-      ]);
+      await this.dataSource.query(
+        `CREATE SCHEMA IF NOT EXISTS "${schemaName}"`,
+      );
     } catch (error) {
       this.logger.error(`Error creating schema ${schemaName}: ${error}`);
       throw error;

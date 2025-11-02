@@ -30,3 +30,10 @@ export interface ConnectionPoolConfig {
    */
   cleanupInterval?: number;
 }
+
+export interface IConnectionPoolStats {
+  total: number;
+  active: number;
+  inactive: number;
+  schemas: string[];
+}

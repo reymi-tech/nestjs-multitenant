@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EntityRegistryType } from 'src/config/entity.registry';
-import { EntityName, TenantPreset } from 'src/constants';
 
+import { EntityRegistryType } from '../../config/entity.registry';
+import { EntityName, TenantPreset } from '../../constants';
 import {
   IMultiTenantConfigService,
   MultiTenantModuleOptions,
@@ -18,18 +18,13 @@ import {
 export const MULTI_TENANT_CONFIG_SERVICE = Symbol('IMultiTenantConfigService');
 
 /**
- * Symbol for multi-tenant module options
- */
-export const MULTI_TENANT_MODULE_OPTIONS = Symbol('MULTI_TENANT_OPTIONS');
-
-/**
  * Configuration service for multi-tenant module
  * Provides centralized access to module configuration
  */
 @Injectable()
 export class MultiTenantConfigService implements IMultiTenantConfigService {
   constructor(
-    @Inject(MULTI_TENANT_MODULE_OPTIONS)
+    @Inject('MULTI_TENANT_OPTIONS')
     private readonly options: MultiTenantModuleOptions,
   ) {}
 

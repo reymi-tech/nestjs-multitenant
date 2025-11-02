@@ -5,7 +5,7 @@ import {
   EntityName,
   REGEX_FORMAT_KEY_TO_ENTITY_NAME,
   TenantPreset,
-} from 'src/constants';
+} from '../constants';
 
 export type EntityRegistryType = Record<
   EntityName,

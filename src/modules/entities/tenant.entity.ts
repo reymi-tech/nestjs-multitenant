@@ -1,4 +1,3 @@
-import { TenantStatus } from 'src/constants';
 import {
   Column,
   CreateDateColumn,
@@ -9,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { TenantStatus } from '../../constants';
 import { IEntityConfig, ITenant } from '../interface/tenant.interface';
 
 /**

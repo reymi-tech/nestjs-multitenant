@@ -1,5 +1,6 @@
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { TenantStatus } from 'src/constants';
+
+import { TenantStatus } from '../../constants';
 
 /**
  * DTO for filtering tenants
