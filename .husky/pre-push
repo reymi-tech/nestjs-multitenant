@@ -1,2 +1,2 @@
 npm run build
-find dist/main.js
+find dist/index.js
