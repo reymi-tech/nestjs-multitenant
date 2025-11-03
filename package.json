@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prebuild": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc --watch",
     "prepublishOnly": "npm run build",
@@ -66,7 +67,6 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unicorn": "^61.0.2",
-    "fastify": "^5.6.1",
     "fs-extra": "^11.3.2",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
