@@ -4,6 +4,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import {
   IMultiTenantConfigService,
   ITenantContextService,
+  TenantResolutionConfig,
 } from '../interface/tenant.interface';
 import {
   ITenantMiddlewareFastify,
@@ -37,98 +38,27 @@ export class TenantFastifyMiddleware
     try {
       const tenantResolutionConfig =
         this.configService.getTenantResolutionConfig();
-      let tenantId: string | undefined = undefined;
+      const tenantId = await this.resolveTenantId(req, tenantResolutionConfig);
 
-      switch (tenantResolutionConfig.strategy) {
-        case 'header': {
-          tenantId = this.resolveFromHeader(
-            req,
-            tenantResolutionConfig.headerName || 'x-tenant-id',
-          );
-          break;
-        }
-        case 'subdomain': {
-          tenantId = this.resolveFromSubdomain(req, 0);
-          break;
-        }
-        case 'jwt': {
-          tenantId = await this.resolveFromJWT(
-            req,
-            tenantResolutionConfig.jwtClaimName || 'tenantId',
-          );
-          break;
-        }
-        case 'custom': {
-          if (tenantResolutionConfig.customResolver) {
-            const adatedReq = this.adaptFastifyRequest(req);
-            tenantId = tenantResolutionConfig.customResolver(adatedReq);
-          }
-          break;
-        }
-        default: {
-          throw new Error(
-            `[Fastify] Unknown tenant resolution strategy: ${tenantResolutionConfig.strategy}`,
-          );
-        }
-      }
+      // Use resolved tenant or fallback to default
+      const finalTenantId = tenantId || tenantResolutionConfig.defaultTenant;
 
-      if (tenantId) {
-        this.logger.debug(
-          `[Fastify] Tenant resolved using ${tenantResolutionConfig.strategy} strategy: ${tenantId}`,
+      if (finalTenantId) {
+        this.setTenantContext(
+          req,
+          finalTenantId,
+          tenantId ? tenantResolutionConfig.strategy : 'default',
         );
-      }
 
-      // Set tenant context
-      this.logger.debug(
-        `[Fastify] Setting tenant context for request: ${tenantId}`,
-      );
-
-      if (tenantId) {
-        this.tenantContextService.setContext(tenantId);
-        const context = this.tenantContextService.getContext();
-        if (context) {
-          req.tenant = {
-            id: context.tenantId,
-            schema: context.tenantSchema,
-          };
-
-          // Add Tenant headers to response
-          reply.setHeader('X-Tenant-ID', context.tenantId || 'unknown');
-          reply.setHeader('X-Tenant-Schema', context.tenantSchema || 'unknown');
-
-          this.logger.debug(
-            `[Fastify] Tenant context set: ID=${context.tenantId}, Schema=${context.tenantSchema}`,
-          );
-        } else {
-          // Default tenant context
-          const defaultTenant = tenantResolutionConfig.defaultTenant;
-          if (defaultTenant) {
-            this.tenantContextService.setContext(defaultTenant);
-            const context = this.tenantContextService.getContext();
-
-            if (context) {
-              req.tenant = {
-                id: context.tenantId,
-                schema: context.tenantSchema,
-              };
-
-              reply.setHeader('X-Tenant-ID', context.tenantId || 'unknown');
-              reply.setHeader(
-                'X-Tenant-Schema',
-                context.tenantSchema || 'unknown',
-              );
-
-              this.logger.debug(
-                `[Fastify] Default tenant context set: ID=${context.tenantId}, Schema=${context.tenantSchema}`,
-              );
-            }
-          } else {
-            // If no default tenant and no tenant found, log debug message
-            this.logger.debug(
-              '[Fastify] No tenant found in request and no default tenant configured',
-            );
-          }
-        }
+        reply.setHeader('X-Tenant-ID', finalTenantId || 'unknown');
+        reply.setHeader(
+          'X-Tenant-Schema',
+          this.tenantContextService.getContext()?.tenantSchema || 'unknown',
+        );
+      } else {
+        this.logger.debug(
+          '[Fastify] No tenant found in request and no default tenant configured',
+        );
       }
     } catch (error) {
       this.logger.error('[Fastify] Error resolving tenant context:', error);
@@ -137,17 +67,90 @@ export class TenantFastifyMiddleware
   }
 
   /**
+   * Resolves tenant ID based on the configured strategy.
+   * @param req - The Fastify request object
+   * @param config - The tenant resolution configuration
+   * @returns The resolved tenant ID or undefined
+   */
+  private async resolveTenantId(
+    req: TenantFastifyRequest,
+    config: TenantResolutionConfig,
+  ): Promise<string | undefined> {
+    switch (config.strategy) {
+      case 'header': {
+        return this.resolveFromHeader(req, config.headerName || 'x-tenant-id');
+      }
+      case 'subdomain': {
+        return this.resolveFromSubdomain(req, 0);
+      }
+      case 'jwt': {
+        return await this.resolveFromJWT(
+          req,
+          config.jwtClaimName || 'tenantId',
+        );
+      }
+      case 'custom': {
+        const adatedReq = this.adaptFastifyRequest(req);
+        return config.customResolver?.(adatedReq);
+      }
+      default: {
+        this.logger.warn(
+          `[Fastify] Unknown tenant resolution strategy: ${config.strategy}`,
+        );
+        return undefined;
+      }
+    }
+  }
+
+  /**
+   * Sets the tenant context and updates the request object.
+   * @param req - The Fastify request object
+   * @param tenantId - The tenant ID to set
+   * @param source - The source of the tenant ID (strategy or 'default')
+   */
+  private setTenantContext(
+    req: TenantFastifyRequest,
+    tenantId: string,
+    source: string,
+  ): void {
+    this.tenantContextService.setContext(tenantId);
+    const context = this.tenantContextService.getContext();
+
+    if (!context) {
+      this.logger.warn(
+        `[Fastify] Failed to set tenant context for tenant: ${tenantId}`,
+      );
+      return;
+    }
+
+    req.tenant = {
+      id: context.tenantId,
+      schema: context.tenantSchema,
+    };
+
+    const logMessage =
+      source === 'default'
+        ? `[Fastify] Using default tenant: ${tenantId}`
+        : `[Fastify] Tenant resolved using ${source} strategy: ${tenantId}`;
+
+    this.logger.debug(logMessage);
+    this.logger.debug(
+      `[Fastify] Tenant context set: ID=${context.tenantId}, Schema=${context.tenantSchema}`,
+    );
+  }
+
+  /**
    * Resolve tenant ID from request header.
    * @param req - The Fastify request object.
    * @param headerName - The name of the header to check for tenant ID.
-   * @returns The tenant ID if found, otherwise null.
+   * @returns The tenant ID if found, otherwise undefined.
    */
   private resolveFromHeader(
     req: FastifyRequest,
     headerName: string,
   ): string | undefined {
     const tenantId = req.headers[headerName.toLowerCase()] as string;
-    return tenantId || undefined;
+    return tenantId?.trim() || undefined;
   }
 
   /**
@@ -163,8 +166,8 @@ export class TenantFastifyMiddleware
     const host = req.headers.host;
     if (!host) return undefined;
 
-    const subdomains = host.split('.').slice(0, -2); // Remove domain and TLD
-    return subdomains[position] || undefined;
+    const subdomains = host.split('.').slice(0, -2);
+    return subdomains[position]?.trim() || undefined;
   }
 
   /**
@@ -179,18 +182,15 @@ export class TenantFastifyMiddleware
   ): Promise<string | undefined> {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) return undefined;
+      if (!authHeader?.startsWith('Bearer ')) return undefined;
 
       const token = authHeader.slice(7);
-
-      // Basic JWT payload extraction (without verification)
-      // In production, you should verify the JWT signature
       const payload = this.decodeJWTPayload(token);
 
-      return (
-        ((payload as Record<string, unknown>)?.[jwtField] as string) ||
-        undefined
-      );
+      const tenantId = (payload as Record<string, unknown>)?.[
+        jwtField
+      ] as string;
+      return tenantId?.trim() || undefined;
     } catch (error) {
       this.logger.debug('[Fastify] Error extracting tenant from JWT:', error);
       return undefined;
