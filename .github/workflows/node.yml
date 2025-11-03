@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node ⚙️
         uses: ./.github/actions/setup-node
       - name: Build typescript 📦
-        run: node --run build && find dist/main.js
+        run: node --run build && find dist/index.js
       - name: Lint code 💅
         run: node --run lint
       # - name: Run tests ✅
