@@ -6,11 +6,11 @@ import {
   IMultiTenantConfigService,
   MultiTenantModuleOptions,
   TenantResolutionConfig,
-} from '../interface/tenant.interface';
+} from '../../interface/tenant.interface';
 import {
   ConnectionPoolConfig,
   DatabaseConfig,
-} from '../interface/typeorm.interface';
+} from '../../interface/typeorm.interface';
 
 /**
  * Symbol for multi-tenant config service

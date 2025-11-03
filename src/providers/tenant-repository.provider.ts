@@ -4,7 +4,7 @@ import { DataSource, EntityTarget, ObjectLiteral, Repository } from 'typeorm';
 import {
   ITenantConnectionService,
   ITenantContextService,
-} from '../modules/interface/tenant.interface';
+} from '../interface/tenant.interface';
 import { TENANT_CONNECTION_SERVICE } from '../modules/service/tenant-connection.service';
 import { TENANT_CONTEXT_SERVICE } from '../modules/service/tenant-context.service';
 

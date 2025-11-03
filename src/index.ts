@@ -1,6 +1,6 @@
 // Core modules
 export { AdminModule } from './modules/admin/admin.module';
-export { MultiTenantModule } from './modules/multi-tenant.module';
+export { MultiTenantModule } from './multi-tenant.module';
 
 // Services
 export { MultiTenantConfigService } from './modules/service/multi-tenant-config.service';
@@ -50,13 +50,13 @@ export {
   MultiTenantModuleOptions,
   PlatformType,
   TenantResolutionConfig,
-} from './modules/interface/tenant.interface';
+} from './interface/tenant.interface';
 export {
   ITenantMiddlewareExpress,
   ITenantMiddlewareFastify,
   TenantExpressRequest,
   TenantFastifyRequest,
-} from './modules/interface/tenant-middleware.interface';
+} from './interface/tenant-middleware.interface';
 
 // Enums
 // export { Platform } from "./enums/platform.enum";
@@ -64,12 +64,12 @@ export {
 export {
   EntityRegistryConfig,
   EntityValidationResult,
-} from './modules/interface/entity-registry.interface';
+} from './interface/entity-registry.interface';
 export {
   ConnectionPoolConfig,
   DatabaseConfig,
   IConnectionPoolStats,
-} from './modules/interface/typeorm.interface';
+} from './interface/typeorm.interface';
 
 // Configuration
 export {

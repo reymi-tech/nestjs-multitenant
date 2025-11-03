@@ -13,13 +13,13 @@ import { EntityName } from '../../constants';
 import {
   ITenantAdminService,
   TENANT_ADMIN_SERVICE,
-} from '../interface/core.interface';
+} from '../../interface/core.interface';
 import {
   IMultiTenantConfigService,
   ITenantConnectionService,
   ITenantContextService,
-} from '../interface/tenant.interface';
-import { IConnectionPoolStats } from '../interface/typeorm.interface';
+} from '../../interface/tenant.interface';
+import { IConnectionPoolStats } from '../../interface/typeorm.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 import { TENANT_CONTEXT_SERVICE } from './tenant-context.service';
 

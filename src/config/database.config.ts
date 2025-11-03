@@ -3,8 +3,8 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { EntitySchema } from 'typeorm';
 
 import { EntityName } from '../constants';
+import { DatabaseConfig } from '../interface/typeorm.interface';
 import { Tenant } from '../modules/entities/tenant.entity';
-import { DatabaseConfig } from '../modules/interface/typeorm.interface';
 import { getEntityClasses } from '../utils/entity-registry.utils';
 
 /**
