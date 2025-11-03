@@ -14,8 +14,6 @@ export {
   createTenantRepositoryFactory,
   createTenantRepositoryProvider,
   createTenantRepositoryProviders,
-  getTenantRepositoryToken,
-  TENANT_DATA_SOURCE_TOKEN,
   TenantDataSourceProvider,
 } from './providers/tenant-repository.provider';
 
@@ -109,3 +107,7 @@ export {
   getEntityRegistryDebugInfo,
   validateEntityNames,
 } from './utils/entity-registry.utils';
+export {
+  getTenantRepositoryToken,
+  TOKEN_CONSTANTS,
+} from './utils/generate-token.provider';
