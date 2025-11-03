@@ -12,21 +12,21 @@ import { DataSource, IsNull, Repository } from 'typeorm';
 
 import { EntityRegistry } from '../../config/entity.registry';
 import { EntityName, REGEX_TENANT_NAME, TenantStatus } from '../../constants';
+import {
+  FindAllTenants,
+  ITenantAdminService,
+  TenantStats,
+} from '../../interface/core.interface';
+import {
+  IEntityConfig,
+  IMultiTenantConfigService,
+  ITenant,
+} from '../../interface/tenant.interface';
 import { validateEntityNames } from '../../utils/entity-registry.utils';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { TenantFilterDto } from '../dto/filter-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
 import { Tenant } from '../entities/tenant.entity';
-import {
-  FindAllTenants,
-  ITenantAdminService,
-  TenantStats,
-} from '../interface/core.interface';
-import {
-  IEntityConfig,
-  IMultiTenantConfigService,
-  ITenant,
-} from '../interface/tenant.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 
 /**

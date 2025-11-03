@@ -12,30 +12,30 @@ import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { getAdminDatabaseConfig } from '../config/database.config';
-import { TenantFastifyMiddleware } from '../middleware/tenant-fastify.middleware';
-import { TenantResolverMiddleware } from '../middleware/tenant-resolver.middleware';
-import { TenantDataSourceProvider } from '../providers/tenant-repository.provider';
-import { TenantAdminController } from './controllers/tenant-admin.controller';
-import { Tenant } from './entities/tenant.entity';
+import { getAdminDatabaseConfig } from './config/database.config';
 import { TENANT_ADMIN_SERVICE } from './interface/core.interface';
 import {
   MultiTenantModuleAsyncOptions,
   MultiTenantModuleOptions,
 } from './interface/tenant.interface';
+import { TenantFastifyMiddleware } from './middleware/tenant-fastify.middleware';
+import { TenantResolverMiddleware } from './middleware/tenant-resolver.middleware';
+import { TenantAdminController } from './modules/controllers/tenant-admin.controller';
+import { Tenant } from './modules/entities/tenant.entity';
 import {
   MULTI_TENANT_CONFIG_SERVICE,
   MultiTenantConfigService,
-} from './service/multi-tenant-config.service';
-import { TenantAdminService } from './service/tenant-admin.service';
+} from './modules/service/multi-tenant-config.service';
+import { TenantAdminService } from './modules/service/tenant-admin.service';
 import {
   TENANT_CONNECTION_SERVICE,
   TenantConnectionService,
-} from './service/tenant-connection.service';
+} from './modules/service/tenant-connection.service';
 import {
   TENANT_CONTEXT_SERVICE,
   TenantContextService,
-} from './service/tenant-context.service';
+} from './modules/service/tenant-context.service';
+import { TenantDataSourceProvider } from './providers/tenant-repository.provider';
 
 type ImportType = (Type<unknown> | DynamicModule | Promise<DynamicModule>)[];
 

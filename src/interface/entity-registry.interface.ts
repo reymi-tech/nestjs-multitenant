@@ -1,4 +1,4 @@
-import { EntityName, TenantPreset } from '../../constants';
+import { EntityName, TenantPreset } from '../constants';
 
 export interface EntityRegistryConfig {
   entities: Record<string, string>; // Entity name -> Entity class name mapping

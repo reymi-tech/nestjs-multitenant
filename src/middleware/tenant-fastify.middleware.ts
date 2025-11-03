@@ -4,11 +4,11 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import {
   IMultiTenantConfigService,
   ITenantContextService,
-} from '../modules/interface/tenant.interface';
+} from '../interface/tenant.interface';
 import {
   ITenantMiddlewareFastify,
   TenantFastifyRequest,
-} from '../modules/interface/tenant-middleware.interface';
+} from '../interface/tenant-middleware.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from '../modules/service/multi-tenant-config.service';
 import { TENANT_CONTEXT_SERVICE } from '../modules/service/tenant-context.service';
 

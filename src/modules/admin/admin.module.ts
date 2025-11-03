@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { TENANT_ADMIN_SERVICE } from '../../interface/core.interface';
 import { Tenant } from '../entities/tenant.entity';
-import { TENANT_ADMIN_SERVICE } from '../interface/core.interface';
 import {
   MULTI_TENANT_CONFIG_SERVICE,
   MultiTenantConfigService,

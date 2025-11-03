@@ -4,7 +4,7 @@ import {
   IMultiTenantConfigService,
   ITenantContext,
   ITenantContextService,
-} from '../interface/tenant.interface';
+} from '../../interface/tenant.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 
 export const TENANT_CONTEXT_SERVICE = Symbol('ITenantContextService');

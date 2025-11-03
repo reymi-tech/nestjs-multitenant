@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 
 import { TenantStatus } from '../../constants';
-import { IEntityConfig, ITenant } from '../interface/tenant.interface';
+import { IEntityConfig, ITenant } from '../../interface/tenant.interface';
 
 /**
  * Tenant entity stored in the public/admin schema

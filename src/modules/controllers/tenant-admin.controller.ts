@@ -10,17 +10,17 @@ import {
   Query,
 } from '@nestjs/common';
 
-import { CreateTenantDto } from '../dto/create-tenant.dto';
-import { TenantFilterDto } from '../dto/filter-tenant.dto';
-import { UpdateTenantDto } from '../dto/update-tenant.dto';
-import { Tenant } from '../entities/tenant.entity';
 import {
   FindAllTenants,
   ITenantAdminController,
   ITenantAdminService,
   TENANT_ADMIN_SERVICE,
   TenantStats,
-} from '../interface/core.interface';
+} from '../../interface/core.interface';
+import { CreateTenantDto } from '../dto/create-tenant.dto';
+import { TenantFilterDto } from '../dto/filter-tenant.dto';
+import { UpdateTenantDto } from '../dto/update-tenant.dto';
+import { Tenant } from '../entities/tenant.entity';
 
 /**
  * Tenant Admin Controller

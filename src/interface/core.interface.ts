@@ -1,7 +1,7 @@
-import { CreateTenantDto } from '../dto/create-tenant.dto';
-import { TenantFilterDto } from '../dto/filter-tenant.dto';
-import { UpdateTenantDto } from '../dto/update-tenant.dto';
-import { Tenant } from '../entities/tenant.entity';
+import { CreateTenantDto } from '../modules/dto/create-tenant.dto';
+import { TenantFilterDto } from '../modules/dto/filter-tenant.dto';
+import { UpdateTenantDto } from '../modules/dto/update-tenant.dto';
+import { Tenant } from '../modules/entities/tenant.entity';
 
 export interface FindAllTenants {
   data: Tenant[];

@@ -1,8 +1,8 @@
 import { ModuleMetadata } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
-import { EntityRegistryType } from '../../config/entity.registry';
-import { EntityName, TenantPreset, TenantStatus } from '../../constants';
+import { EntityRegistryType } from '../config/entity.registry';
+import { EntityName, TenantPreset, TenantStatus } from '../constants';
 import {
   ConnectionPoolConfig,
   DatabaseConfig,

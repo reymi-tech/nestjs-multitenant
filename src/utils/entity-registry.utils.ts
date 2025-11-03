@@ -5,7 +5,7 @@ import { EntityName, TenantPreset } from '../constants';
 import {
   EntityRegistryConfig,
   EntityValidationResult,
-} from '../modules/interface/entity-registry.interface';
+} from '../interface/entity-registry.interface';
 
 /**
  * Validate that the specified entity names exist in the registry
