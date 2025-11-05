@@ -41,7 +41,7 @@ export class TenantContextService implements ITenantContextService {
     return {
       tenantId: this.tenantId,
       tenantSchema: this.tenantSchema,
-      hasTenant: this.tenantId !== null,
+      hasTenant: this.tenantId !== undefined,
     };
   }
 }

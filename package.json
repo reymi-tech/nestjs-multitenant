@@ -12,6 +12,9 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
+    "test": "rimraf coverage .nyc_output && concurrently 'npm:test:unit' && npm run calculate-global-test-coverage",
+    "test:unit": "vitest run --coverage --config ./vitest.config.unit.ts",
+    "calculate-global-test-coverage": "tsx scripts/calculate-global-test-coverage.ts",
     "prepare": "husky || true"
   },
   "engines": {
@@ -78,7 +81,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
     "vite": "^7.1.12",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.3",
+    "vitest-mock-extended": "^3.1.0"
   },
   "files": [
     "dist/**/*",

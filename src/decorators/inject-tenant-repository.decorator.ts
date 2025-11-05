@@ -3,8 +3,8 @@ import { EntityTarget } from 'typeorm';
 
 import {
   getTenantRepositoryToken,
-  TENANT_DATA_SOURCE_TOKEN,
-} from '../providers/tenant-repository.provider';
+  TOKEN_CONSTANTS,
+} from '../utils/generate-token.provider';
 
 /**
  * Inject the tenant repository for the specified entity.
@@ -44,7 +44,7 @@ export function InjectTenantRepository<T>(
  * ```
  */
 export function InjectTenantDataSource(): ParameterDecorator {
-  return Inject(TENANT_DATA_SOURCE_TOKEN);
+  return Inject(TOKEN_CONSTANTS.DATA_SOURCE);
 }
 
 /**

@@ -7,27 +7,10 @@ import {
 } from '../interface/tenant.interface';
 import { TENANT_CONNECTION_SERVICE } from '../modules/service/tenant-connection.service';
 import { TENANT_CONTEXT_SERVICE } from '../modules/service/tenant-context.service';
-
-const TENANT_REPOSITORY_TOKEN_PREFIX = 'TENANT_REPOSITORY_';
-
-export const TENANT_DATA_SOURCE_TOKEN = 'TENANT_DATA_SOURCE';
-
-type EntityName = {
-  name?: string;
-  options?: { name?: string };
-};
-
-export function getTenantRepositoryToken(
-  entity: EntityTarget<unknown>,
-): string {
-  const entityName =
-    typeof entity === 'string'
-      ? entity
-      : (entity as EntityName).name ||
-        (entity as EntityName).options?.name ||
-        'Unknown';
-  return `${TENANT_REPOSITORY_TOKEN_PREFIX}${entityName}`;
-}
+import {
+  getTenantRepositoryToken,
+  TOKEN_CONSTANTS,
+} from '../utils/generate-token.provider';
 
 export function createTenantRepositoryProvider<T extends ObjectLiteral>(
   entity: EntityTarget<T>,
@@ -60,7 +43,7 @@ export function createTenantRepositoryProviders(
 }
 
 export const TenantDataSourceProvider: Provider = {
-  provide: TENANT_DATA_SOURCE_TOKEN,
+  provide: TOKEN_CONSTANTS.DATA_SOURCE,
   useFactory: async (
     tenantConnectionService: ITenantConnectionService,
     tenantContextService: ITenantContextService,
@@ -100,7 +83,9 @@ export function createTenantRepositoryFactory<T extends ObjectLiteral>(
   entity: EntityTarget<T>,
 ): Provider {
   return {
-    provide: `${getTenantRepositoryToken(entity)}_FACTORY`,
+    provide: `${getTenantRepositoryToken(entity)}${
+      TOKEN_CONSTANTS.FACTORY_SUFFIX
+    }`,
     useFactory: (tenantConnectionService: ITenantConnectionService) => {
       return async (tenantId: string): Promise<Repository<T>> => {
         const schemaName = `tenant_${tenantId}`;
