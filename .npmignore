@@ -1,0 +1,33 @@
+# Defensive publish ignore list
+# Note: The "files" field in package.json already whitelists dist, README, and LICENSE.
+# This file keeps extra project files out of the published tarball.
+
+# Node & tooling
+node_modules/
+.vscode/
+.DS_Store
+pnpm-lock.yaml
+
+# Source and tests (not needed by consumers)
+src/
+test/
+tests/
+scripts/
+coverage/
+.nyc_output/
+
+# CI and repo meta
+.github/
+
+# Local configs
+vitest.config.ts
+vitest.config.unit.ts
+tsconfig.json
+tsconfig.build.json
+eslint.config.mjs
+prettier.config.mjs
+lint-staged.config.mjs
+commitlint.config.ts
+
+# Logs
+*.log
