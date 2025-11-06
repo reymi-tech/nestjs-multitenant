@@ -23,7 +23,10 @@
     "test:unit": "vitest run --coverage --config ./vitest.config.unit.ts",
     "calculate-global-test-coverage": "tsx scripts/calculate-global-test-coverage.ts",
     "prepare": "husky || true",
-    "publish:public": "npm publish --access public"
+    "publish:public": "npm publish --access public",
+    "release:patch": "npm version patch -m 'chore: release v%s'",
+    "release:minor": "npm version minor -m 'chore: release v%s'",
+    "release:major": "npm version major -m 'chore: release v%s'"
   },
   "engines": {
     "node": ">=22.x",
