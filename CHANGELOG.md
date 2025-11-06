@@ -9,7 +9,7 @@ Semantic Versioning.
 
 ### Added
 
-- Initial public release of @reymi-tech/nestjs-multitenant
+- Initial public release of nestjs-multitenant
 - Multi-tenant module, services, providers and decorators
 - Fastify and Express middlewares for tenant resolution
 - TypeORM repository injection helpers and token utilities

@@ -1,4 +1,4 @@
-# @reymi-tech/nestjs-multitenant
+# nestjs-multitenant
 
 Una solución completa de multi-tenancy para aplicaciones NestJS
 con arquitectura de esquema por tenant (PostgreSQL) y utilidades
@@ -10,7 +10,7 @@ y configuración tipada.
 Instala el paquete y sus peer dependencies requeridas:
 
 ```
-pnpm add @reymi-tech/nestjs-multitenant \
+pnpm add nestjs-multitenant \
   @nestjs/common @nestjs/core @nestjs/config @nestjs/typeorm \
   typeorm reflect-metadata pg
 ```
@@ -23,7 +23,7 @@ pnpm add @reymi-tech/nestjs-multitenant \
 
 ```ts
 import { Module } from '@nestjs/common';
-import { MultiTenantModule } from '@reymi-tech/nestjs-multitenant';
+import { MultiTenantModule } from 'nestjs-multitenant';
 
 @Module({
   imports: [
@@ -47,7 +47,7 @@ export class AppModule {}
 // Ejemplo Fastify
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { TenantFastifyMiddleware } from '@reymi-tech/nestjs-multitenant';
+import { TenantFastifyMiddleware } from 'nestjs-multitenant';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -61,7 +61,7 @@ bootstrap();
 
 ```ts
 import { Injectable } from '@nestjs/common';
-import { InjectTenantRepository } from '@reymi-tech/nestjs-multitenant';
+import { InjectTenantRepository } from 'nestjs-multitenant';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -77,14 +77,14 @@ export class UsersService {
 ## Documentación
 
 - Exporta decoradores, providers, servicios, middlewares y DTOs
-  desde `@reymi-tech/nestjs-multitenant`.
+  desde `nestjs-multitenant`.
 - Revisa `src/index.ts` para el API público disponible.
 
 ## Scripts
 
 - `node --run build`: Compila TypeScript a `dist/`.
 - `node --run test:unit`: Ejecuta las pruebas unitarias con cobertura.
-- `npm run publish:public`: Publica el paquete en npm (scoped, acceso público).
+- `npm run publish:public`: Publica el paquete en npm (acceso público).
 - `npm run prepublishOnly`: Construye y ejecuta tests antes de publicar.
 
 ## Versionado y CHANGELOG
