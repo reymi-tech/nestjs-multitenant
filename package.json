@@ -1,21 +1,29 @@
 {
-  "name": "nestjs-multitenant",
+  "name": "@reymi-tech/nestjs-multitenant",
   "version": "1.0.0",
   "description": "A comprehensive multi-tenant solution for NestJS applications with PostgreSQL schema-per-tenant architecture",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc --watch",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node --run build && node --run test:unit",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
-    "test": "rimraf coverage .nyc_output && concurrently 'npm:test:unit' && npm run calculate-global-test-coverage",
+    "test": "rimraf coverage .nyc_output && node --run test:unit && node --run calculate-global-test-coverage",
     "test:unit": "vitest run --coverage --config ./vitest.config.unit.ts",
     "calculate-global-test-coverage": "tsx scripts/calculate-global-test-coverage.ts",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "publish:public": "npm publish --access public"
   },
   "engines": {
     "node": ">=22.x",
@@ -31,6 +39,9 @@
   ],
   "author": "Luis Enrique <lmorochofebres@gmail.com>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/reymi-tech/nestjs-multitenant.git"
