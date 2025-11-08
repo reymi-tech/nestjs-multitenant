@@ -162,7 +162,7 @@ export default [
       'node_modules/*',
       'dist/*',
       'coverage/*',
-      'documentation/*',
+      'docs/*',
       'pnpm-lock.yaml',
       '.gitignore',
       '*.log',
