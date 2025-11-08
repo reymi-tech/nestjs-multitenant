@@ -27,9 +27,9 @@
     "prepare": "husky || true",
     "verify": "npm run lint && npm run test",
     "prerelease": "npm run verify",
-    "release:patch": "npm version patch -m 'chore: release v%s' && git push --follow-tags && npm publish",
-    "release:minor": "npm version minor -m 'chore: release v%s' && git push --follow-tags && npm publish",
-    "release:major": "npm version major -m 'chore: release v%s' && git push --follow-tags && npm publish"
+    "release:patch": "npm version patch -m \"chore: release v%s\" && git push --follow-tags && npm publish",
+    "release:minor": "npm version minor -m \"chore: release v%s\" && git push --follow-tags && npm publish",
+    "release:major": "npm version major -m \"chore: release v%s\" && git push --follow-tags && npm publish"
   },
   "engines": {
     "node": ">=22.x",
