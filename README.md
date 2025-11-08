@@ -5,6 +5,8 @@ con arquitectura de esquema por tenant (PostgreSQL) y utilidades
 para inyección de repositorios, middlewares de resolución de tenant
 y configuración tipada.
 
+> **📖 [Read the Full Documentation](https://reymi-tech.github.io/nestjs-multitenant/)** - Comprehensive guides, API reference, and examples
+
 ## 🚀 Características
 
 - **Arquitectura Schema-per-Tenant**: Cada tenant tiene su propio esquema de base de datos
