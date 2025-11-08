@@ -15,6 +15,7 @@ tests/
 scripts/
 coverage/
 .nyc_output/
+docs/
 
 # CI and repo meta
 .github/
