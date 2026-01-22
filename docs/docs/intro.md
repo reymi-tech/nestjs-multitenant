@@ -21,7 +21,18 @@ Out-of-the-box support for multiple tenant resolution strategies:
 - **Header-based**: Extract tenant ID from HTTP headers
 - **Subdomain**: Use subdomains to identify tenants (e.g., `acme.yourapp.com`)
 - **JWT Token**: Extract tenant information from JWT claims
+
 - **Custom**: Implement your own resolution logic
+
+### Flexible Tenant Validation
+
+Ensure data integrity and security by validating tenants against:
+
+- **Local Database**: Direct check against your tenant table (Default).
+- **Remote Service**: Validate against a centralized tenant service in microservices.
+- **Custom Logic**: Implement your own validation rules (e.g., Redis, LDAP).
+
+[Learn more about Tenant Validation](/docs/core-concepts/validation-strategies)
 
 ### Dynamic Connection Pooling
 

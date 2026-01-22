@@ -13,6 +13,12 @@ Core module for multi-tenancy functionality.
 
 Static configuration.
 
+**Options:**
+
+- `validationStrategy`: (`'local' | 'remote' | 'custom'`) - specific strategy to validate tenants.
+- `remoteServiceUrl`: (`string`) - URL for the remote validation service (required if strategy is 'remote').
+- `customProviders`: (`Provider[]`) - Array of custom providers (used for custom strategies).
+
 ### forRootAsync()
 
 Async configuration with dependency injection.

@@ -302,6 +302,39 @@ export class TenantAdminService implements ITenantAdminService {
   }
 
   /**
+   * Finds a tenant by its code
+   *
+   * @param code The tenant code
+   * @returns A promise that resolves to the tenant entity with the specified code
+   */
+  async findByCode(code: string): Promise<Tenant> {
+    const tenant = await this.tenantRepository.findOne({
+      where: { code, deletedAt: IsNull() },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with code ${code} not found`);
+    }
+
+    return tenant;
+  }
+
+  /**
+   * Validates if a tenant exists by code
+   *
+   * @param code The tenant code
+   * @returns A promise that resolves to an object indicating if the tenant exists
+   */
+  async validate(code: string): Promise<{ exists: boolean }> {
+    const tenant = await this.tenantRepository.findOne({
+      where: { code, deletedAt: IsNull() },
+      select: ['id'],
+    });
+
+    return { exists: !!tenant };
+  }
+
+  /**
    * Validates whether a schema name is valid for a tenant
    *
    * @param name The schema name to validate

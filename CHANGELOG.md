@@ -24,6 +24,20 @@ Semantic Versioning.
 
 - Verified no hardcoded credentials or absolute paths in sources
 
+## [1.2.0] - 2026-01-22
+
+### Added
+
+- Flexible Tenant Validation Strategies (`local`, `remote`, `custom`).
+- New `validationStrategy` and `remoteServiceUrl` options in `MultiTenantModule` configuration.
+- `findByCode` and `validate` endpoints in `TenantAdminController`.
+- Documentation for Tenant Validation Strategies.
+
+### Changed
+
+- `TenantAdminService` now includes methods for validating and finding tenants by code.
+- Updated `RemoteTenantValidationStrategy` to use the new Admin API endpoints.
+
 ## [Unreleased]
 
 - TBA

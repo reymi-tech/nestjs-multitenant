@@ -37,6 +37,10 @@ export interface ITenantAdminController {
   activate(id: string): Promise<Tenant>;
 
   deactivate(id: string): Promise<Tenant>;
+
+  findByCode(code: string): Promise<Tenant>;
+
+  validate(code: string): Promise<{ exists: boolean }>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

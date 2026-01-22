@@ -7,6 +7,19 @@ title: Changelog
 
 All notable changes to nestjs-multitenant.
 
+## [1.2.0] - 2026-01-22
+
+### New Features
+
+- **Tenant Validation Strategies**: Introduced support for `local` (database), `remote` (HTTP service), and `custom` validation strategies.
+- **Remote Validation Config**: Use `remoteServiceUrl` to easily configure remote validation.
+- **Admin API Expansion**: Added `validate` and `findByCode` endpoints to `TenantAdminController`.
+
+### Improvements
+
+- **Documentation**: Added comprehensive guide for Validation Strategies and updated Admin API docs.
+- **Flexibility**: Enhanced `MultiTenantModule` configuration options.
+
 ## [1.0.0] - 2025-11-06
 
 ### Added

@@ -23,7 +23,9 @@ export class RemoteTenantValidationStrategy
   async validateTenantExists(tenantCode: string): Promise<boolean> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.basePath}/tenants/validate/${tenantCode}`),
+        this.httpService.get(
+          `${this.basePath}/admin/tenant/validate/${tenantCode}`,
+        ),
       );
       return response.data.exists;
     } catch {
@@ -40,7 +42,7 @@ export class RemoteTenantValidationStrategy
   async findByCode(code: string): Promise<Tenant | undefined> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.basePath}/tenants/${code}`),
+        this.httpService.get(`${this.basePath}/admin/tenant/code/${code}`),
       );
       return response.data;
     } catch {
