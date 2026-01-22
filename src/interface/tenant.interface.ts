@@ -1,4 +1,4 @@
-import { ModuleMetadata } from '@nestjs/common';
+import { DynamicModule, ModuleMetadata, Provider, Type } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { EntityRegistryType } from '../config/entity.registry';
@@ -118,6 +118,33 @@ export interface MultiTenantModuleOptions {
    * Strategy for naming tenant schemas
    */
   schemaNamingStrategy?: (tenantId: string) => string;
+
+  /**
+   * Validation strategy for tenant management
+   */
+  validationStrategy?: 'local' | 'remote' | 'custom';
+
+  /**
+   * Remote service URL for validation strategy (required when validationStrategy is 'remote')
+   */
+  remoteServiceUrl?: string;
+
+  /**
+   * Custom providers for tenant management
+   */
+  customProviders?: Provider[];
+
+  /**
+   * Custom controllers for tenant management
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customControllers?: Type<any>[];
+
+  /**
+   * Custom imports for tenant management
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customImports?: Array<Type<any> | DynamicModule | Promise<DynamicModule>>;
 }
 
 export interface MultiTenantModuleAsyncOptions
@@ -128,6 +155,13 @@ export interface MultiTenantModuleAsyncOptions
   ) => Promise<MultiTenantModuleOptions> | MultiTenantModuleOptions;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   inject?: any[];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  controllers?: Type<any>[];
+
+  validationStrategyProvider?: Provider;
+
+  managementStrategyProvider?: Provider;
 }
 
 export interface IMultiTenantConfigService {

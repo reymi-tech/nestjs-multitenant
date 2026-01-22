@@ -11,14 +11,14 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { getMultiTenantDatabaseConfig } from '../../config/database.config';
 import { EntityName } from '../../constants';
 import {
-  ITenantAdminService,
-  TENANT_ADMIN_SERVICE,
-} from '../../interface/core.interface';
-import {
   IMultiTenantConfigService,
   ITenantConnectionService,
   ITenantContextService,
 } from '../../interface/tenant.interface';
+import {
+  ITenantValidationStrategy,
+  TENANT_VALIDATION_STRATEGY,
+} from '../../interface/tenant-validation.interface';
 import { IConnectionPoolStats } from '../../interface/typeorm.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 import { TENANT_CONTEXT_SERVICE } from './tenant-context.service';
@@ -47,9 +47,9 @@ export class TenantConnectionService implements ITenantConnectionService {
     @Inject(MULTI_TENANT_CONFIG_SERVICE)
     private readonly multiTenantConfigService: IMultiTenantConfigService,
 
-    @Inject(TENANT_ADMIN_SERVICE)
+    @Inject(TENANT_VALIDATION_STRATEGY)
     @Optional()
-    private readonly tenantAdminService: ITenantAdminService,
+    private readonly tenantValidationStrategy?: ITenantValidationStrategy,
   ) {
     const poolConfig = this.multiTenantConfigService.getConnectionPoolConfig();
     this.maxConnections = poolConfig.maxConnections || 50;
@@ -65,10 +65,10 @@ export class TenantConnectionService implements ITenantConnectionService {
     if (
       schema !== 'public' &&
       schema !== 'default' &&
-      this.tenantAdminService
+      this.tenantValidationStrategy
     ) {
       const tenantExists =
-        await this.tenantAdminService.validateTenantExists(schema);
+        await this.tenantValidationStrategy.validateTenantExists(schema);
 
       if (!tenantExists) {
         this.logger.debug(`Tenant does not exist: ${schema}`);
@@ -163,12 +163,12 @@ export class TenantConnectionService implements ITenantConnectionService {
   private async getTenantEntityConfig(
     tenantCode: string,
   ): Promise<EntityName[]> {
-    if (!this.tenantAdminService) {
+    if (!this.tenantValidationStrategy) {
       // Return default entities if admin service is not available
       return ['user', 'role'];
     }
 
-    const tenant = await this.tenantAdminService.findByCode(tenantCode);
+    const tenant = await this.tenantValidationStrategy.findByCode(tenantCode);
 
     if (!tenant?.entityConfig?.enabledEntities) {
       // Default configuration if not specified

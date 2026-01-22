@@ -50,11 +50,16 @@ export {
   TenantResolutionConfig,
 } from './interface/tenant.interface';
 export {
+  ITenantManagementStrategy,
+  TENANT_MANAGEMENT_STRATEGY,
+} from './interface/tenant-management.interface';
+export {
   ITenantMiddlewareExpress,
   ITenantMiddlewareFastify,
   TenantExpressRequest,
   TenantFastifyRequest,
 } from './interface/tenant-middleware.interface';
+export { TENANT_VALIDATION_STRATEGY } from './interface/tenant-validation.interface';
 
 // Enums
 // export { Platform } from "./enums/platform.enum";
@@ -100,6 +105,7 @@ export {
 } from './constants';
 
 // Utilities
+export { createTenantStrategyProvider } from './utils/create-tenant-strategy.provider';
 export {
   configureEntityRegistry,
   getEntityClasses,

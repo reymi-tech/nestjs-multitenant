@@ -39,10 +39,8 @@ export interface ITenantAdminController {
   deactivate(id: string): Promise<Tenant>;
 }
 
-export interface ITenantAdminService extends ITenantAdminController {
-  findByCode(code: string): Promise<Tenant | null>;
-  validateTenantExists(schemaName: string): Promise<boolean>;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ITenantAdminService extends ITenantAdminController {}
 
 // Strongly-typed injection token to ensure consumers depend on the interface only
 export const TENANT_ADMIN_SERVICE = Symbol('ITenantAdminService');
