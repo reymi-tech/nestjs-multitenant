@@ -27,6 +27,11 @@ import { MultiTenantModule } from 'nestjs-multitenant';
       platform: 'express',
       autoCreateSchemas: true,
       enableAdminModule: true,
+      // Optional: Custom Tenant Admin Controller and Service
+      // customControllers: [CustomTenantAdminController],
+      // customProviders: [
+      //   createTenantStrategyProvider(TenantAdminService)
+      // ]
     }),
   ],
 })
@@ -44,19 +49,43 @@ import {
   MultiTenantModule,
   createDatabaseConfigFromEnv,
 } from 'nestjs-multitenant';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import {
+  Tenant,
+  createTenantStrategyProvider,
+  TenantAdminService,
+} from 'nestjs-multitenant';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
+    // Mandatory: Admin Database Configuration
+    TypeOrmModule.forRootAsync({
+      name: 'admin',
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        getAdminDatabaseConfig(configService),
+    }),
+
     MultiTenantModule.forRootAsync({
       inject: [ConfigService],
+      imports: [
+        TypeOrmModule.forFeature([Tenant], 'admin'),
+        CustomTenantAdminModule, // Import your module with controllers, using wrapper. Option 1
+      ],
       useFactory: (configService: ConfigService) => ({
         database: createDatabaseConfigFromEnv(configService),
         platform: configService.get('PLATFORM', 'express'),
         autoCreateSchemas: configService.get('AUTO_CREATE_SCHEMAS', true),
         enableAdminModule: configService.get('ENABLE_ADMIN_MODULE', true),
+        validationStrategy: 'local',
+        // customControllers: [CustomTenantAdminController] // Option 2
       }),
+      // controllers: [CustomTenantAdminController] // Option 3
+      // Optional: Custom Tenant Admin Controller and Service
+      managementStrategyProvider:
+        createTenantStrategyProvider(TenantAdminService),
     }),
   ],
 })

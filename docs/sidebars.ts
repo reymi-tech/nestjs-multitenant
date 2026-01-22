@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
         'core-concepts/tenant-context',
         'core-concepts/connection-pooling',
         'core-concepts/entity-registry',
+        'core-concepts/validation-strategies',
       ],
     },
     {

@@ -177,18 +177,6 @@ export class TenantAdminService implements ITenantAdminService {
   }
 
   /**
-   * Finds a tenant by its code
-   *
-   * @param code The tenant code
-   * @returns A promise that resolves to the tenant entity with the specified code, or null if no tenant is found
-   */
-  async findByCode(code: string): Promise<Tenant | null> {
-    return this.tenantRepository.findOne({
-      where: { code, deletedAt: IsNull() },
-    });
-  }
-
-  /**
    * Updates a tenant by its ID
    *
    * @param id The tenant ID
@@ -238,19 +226,6 @@ export class TenantAdminService implements ITenantAdminService {
     tenant.status = TenantStatus.INACTIVE;
     await this.tenantRepository.save(tenant);
     this.logger.log(`Tenant with ID ${id} removed successfully}`);
-  }
-
-  /**
-   * Validates whether a tenant with the specified schema name exists
-   *
-   * @param schemaName The tenant schema name
-   * @returns A promise that resolves to true if the tenant exists, false otherwise
-   */
-  async validateTenantExists(schemaName: string): Promise<boolean> {
-    const tenant = await this.tenantRepository.findOne({
-      where: { code: schemaName, deletedAt: IsNull() },
-    });
-    return !!tenant;
   }
 
   /**
@@ -324,6 +299,39 @@ export class TenantAdminService implements ITenantAdminService {
     const updatedTenant = await this.tenantRepository.save(tenant);
     this.logger.log(`Tenant with ID ${id} deactivated successfully}`);
     return updatedTenant;
+  }
+
+  /**
+   * Finds a tenant by its code
+   *
+   * @param code The tenant code
+   * @returns A promise that resolves to the tenant entity with the specified code
+   */
+  async findByCode(code: string): Promise<Tenant> {
+    const tenant = await this.tenantRepository.findOne({
+      where: { code, deletedAt: IsNull() },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with code ${code} not found`);
+    }
+
+    return tenant;
+  }
+
+  /**
+   * Validates if a tenant exists by code
+   *
+   * @param code The tenant code
+   * @returns A promise that resolves to an object indicating if the tenant exists
+   */
+  async validate(code: string): Promise<{ exists: boolean }> {
+    const tenant = await this.tenantRepository.findOne({
+      where: { code, deletedAt: IsNull() },
+      select: ['id'],
+    });
+
+    return { exists: !!tenant };
   }
 
   /**

@@ -119,6 +119,11 @@ import { TasksModule } from './tasks/tasks.module';
         strategy: 'header',
         headerName: 'x-tenant-id',
       },
+      // Optional: Custom Tenant Admin Controller and Service
+      // customControllers: [CustomTenantAdminController],
+      // customProviders: [
+      //   createTenantStrategyProvider(TenantAdminService)
+      // ]
     }),
 
     TasksModule,

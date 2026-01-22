@@ -1,6 +1,6 @@
 {
   "name": "nestjs-multitenant",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "A comprehensive multi-tenant solution for NestJS applications with PostgreSQL schema-per-tenant architecture",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -62,6 +62,7 @@
   },
   "homepage": "https://github.com/reymi-tech/nestjs-multitenant#readme",
   "peerDependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.7",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.7",
@@ -115,5 +116,8 @@
     "README.md",
     "LICENSE"
   ],
-  "packageManager": "pnpm@10.19.0"
+  "packageManager": "pnpm@10.19.0",
+  "dependencies": {
+    "rxjs": "^7.8.2"
+  }
 }

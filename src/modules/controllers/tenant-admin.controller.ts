@@ -104,4 +104,22 @@ export class TenantAdminController implements ITenantAdminController {
   deactivate(@Param('id') id: string): Promise<Tenant> {
     return this.tenantAdminService.deactivate(id);
   }
+
+  /**
+   * Find a tenant by code
+   * @param code Tenant code
+   */
+  @Get('code/:code')
+  findByCode(@Param('code') code: string): Promise<Tenant> {
+    return this.tenantAdminService.findByCode(code);
+  }
+
+  /**
+   * Validate if a tenant exists
+   * @param code Tenant code
+   */
+  @Get('validate/:code')
+  validate(@Param('code') code: string): Promise<{ exists: boolean }> {
+    return this.tenantAdminService.validate(code);
+  }
 }

@@ -18,6 +18,7 @@ import { TenantFilterDto } from '../../../../src/modules/dto/filter-tenant.dto';
 import { UpdateTenantDto } from '../../../../src/modules/dto/update-tenant.dto';
 import { Tenant } from '../../../../src/modules/entities/tenant.entity';
 import { TenantAdminService } from '../../../../src/modules/service/tenant-admin.service';
+import { LocalTenantValidationStrategy } from '../../../../src/strategies/local-tenant-validation.strategy';
 import { createMock, Mock } from '../../../utils/mock';
 
 // Factory functions para crear datos de prueba
@@ -82,6 +83,8 @@ describe('TenantAdminService', () => {
   let dataSource: Mock<DataSource>;
   let configService: Mock<IMultiTenantConfigService>;
   let entityRegistry: Mock<EntityRegistry>;
+  // let tenantValidationStrategy: Mock<ITenantValidationStrategy>;
+  let tenantValidationStrategy: LocalTenantValidationStrategy;
 
   beforeEach(() => {
     // Crear mocks
@@ -103,6 +106,10 @@ describe('TenantAdminService', () => {
       tenantRepository,
       dataSource,
       configService,
+    );
+
+    tenantValidationStrategy = new LocalTenantValidationStrategy(
+      tenantRepository,
     );
 
     // Configurar mocks por defecto
@@ -462,7 +469,7 @@ describe('TenantAdminService', () => {
       tenantRepository.findOne.mockResolvedValue(expectedTenant);
 
       // Act
-      const result = await service.findByCode(tenantCode);
+      const result = await tenantValidationStrategy.findByCode(tenantCode);
 
       // Assert
       expect(result).toEqual(expectedTenant);
@@ -478,7 +485,7 @@ describe('TenantAdminService', () => {
       tenantRepository.findOne.mockResolvedValue(undefined as any);
 
       // Act
-      const result = await service.findByCode(tenantCode);
+      const result = await tenantValidationStrategy.findByCode(tenantCode);
 
       // Assert
       expect(result).toBeUndefined();
@@ -617,7 +624,8 @@ describe('TenantAdminService', () => {
       tenantRepository.findOne.mockResolvedValue(existingTenant);
 
       // Act
-      const result = await service.validateTenantExists(schemaName);
+      const result =
+        await tenantValidationStrategy.validateTenantExists(schemaName);
 
       // Assert
       expect(result).toBe(true);
@@ -633,7 +641,8 @@ describe('TenantAdminService', () => {
       tenantRepository.findOne.mockResolvedValue(undefined as any);
 
       // Act
-      const result = await service.validateTenantExists(schemaName);
+      const result =
+        await tenantValidationStrategy.validateTenantExists(schemaName);
 
       // Assert
       expect(result).toBe(false);

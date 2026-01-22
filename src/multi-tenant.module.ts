@@ -1,23 +1,30 @@
+import { HttpService } from '@nestjs/axios';
 import {
   DynamicModule,
   Global,
+  Inject,
   Logger,
   MiddlewareConsumer,
   Module,
   NestModule,
+  OnModuleInit,
   Provider,
   Type,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { getAdminDatabaseConfig } from './config/database.config';
 import { TENANT_ADMIN_SERVICE } from './interface/core.interface';
 import {
+  IMultiTenantConfigService,
   MultiTenantModuleAsyncOptions,
   MultiTenantModuleOptions,
 } from './interface/tenant.interface';
+import { TENANT_MANAGEMENT_STRATEGY } from './interface/tenant-management.interface';
+import { TENANT_VALIDATION_STRATEGY } from './interface/tenant-validation.interface';
 import { TenantFastifyMiddleware } from './middleware/tenant-fastify.middleware';
 import { TenantResolverMiddleware } from './middleware/tenant-resolver.middleware';
 import { TenantAdminController } from './modules/controllers/tenant-admin.controller';
@@ -36,15 +43,49 @@ import {
   TenantContextService,
 } from './modules/service/tenant-context.service';
 import { TenantDataSourceProvider } from './providers/tenant-repository.provider';
+import { LocalTenantValidationStrategy } from './strategies/local-tenant-validation.strategy';
+import { RemoteTenantValidationStrategy } from './strategies/remote-tenant-validation.strategy';
 
 type ImportType = (Type<unknown> | DynamicModule | Promise<DynamicModule>)[];
 
 @Global()
 @Module({})
-export class MultiTenantModule implements NestModule {
+export class MultiTenantModule implements NestModule, OnModuleInit {
   private readonly logger = new Logger(MultiTenantModule.name);
 
-  constructor(private readonly moduleRef: ModuleRef) {}
+  constructor(
+    private readonly moduleRef: ModuleRef,
+    @Inject('MULTI_TENANT_OPTIONS')
+    private readonly options: MultiTenantModuleOptions,
+  ) {}
+
+  async onModuleInit() {
+    this.logger.log(
+      `Multi-tenant module initialized with strategy: ${this.options.validationStrategy || 'local'}`,
+    );
+
+    // If the dev provided custom controllers, validate that they are loaded
+    if (this.options.customControllers?.length) {
+      this.logger.log(
+        `Multi-tenant module initialized with custom controllers: ${this.options.customControllers?.length}`,
+      );
+    }
+
+    // If using local validation, verify that TypeORM admin is available
+    if (this.options.validationStrategy === 'local') {
+      try {
+        this.moduleRef.get(DataSource, {
+          strict: false,
+        });
+
+        this.logger.log('Admin datasource connection verified successfully');
+      } catch {
+        this.logger.warn(
+          'Admin database connection not found. Make sure to include TypeORM admin imports.',
+        );
+      }
+    }
+  }
 
   static forRoot(options: MultiTenantModuleOptions): DynamicModule {
     const providers: Provider[] = [
@@ -67,8 +108,17 @@ export class MultiTenantModule implements NestModule {
       TenantDataSourceProvider,
     ];
 
-    const imports: (DynamicModule | Promise<DynamicModule>)[] = [];
-    if (options.enableAdminModule !== false) {
+    const imports: ImportType = [...(options.customImports || [])];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const controllers: Type<any>[] = [...(options.customControllers || [])];
+
+    // Determine validation strategy
+    const validationStrategy = this.resolveValidationStrategy(options);
+    providers.push(validationStrategy);
+
+    // Only load admin if using local validation
+    if (options.validationStrategy === 'local' || !options.validationStrategy) {
       imports.push(
         TypeOrmModule.forRootAsync({
           name: 'admin',
@@ -79,30 +129,63 @@ export class MultiTenantModule implements NestModule {
         TypeOrmModule.forFeature([Tenant], 'admin'),
       );
 
-      providers.push({
-        provide: TENANT_ADMIN_SERVICE,
-        useClass: TenantAdminService,
-      });
+      // Only load TenantAdminService if NO customProviders
+      if (
+        options.enableAdminModule !== false &&
+        !options.customProviders?.some(
+          p =>
+            (typeof p === 'object' &&
+              'provide' in p &&
+              p.provide === TENANT_ADMIN_SERVICE) ||
+            (typeof p === 'object' &&
+              'provide' in p &&
+              p.provide === TENANT_MANAGEMENT_STRATEGY),
+        )
+      ) {
+        // Only use defaults if dev did not provide their own
+        providers.push(
+          {
+            provide: TENANT_ADMIN_SERVICE,
+            useClass: TenantAdminService,
+          },
+          {
+            provide: TENANT_MANAGEMENT_STRATEGY,
+            useClass: TenantAdminService,
+          },
+        );
+
+        if (!options.customControllers?.length) {
+          controllers.push(TenantAdminController);
+        }
+      }
+    }
+
+    // Add custom suppliers AFTER
+    if (options.customProviders) {
+      providers.push(...options.customProviders);
     }
 
     return {
       module: MultiTenantModule,
-      imports: imports as ImportType,
+      imports,
       providers,
-      controllers:
-        options.enableAdminModule === false ? [] : [TenantAdminController],
+      controllers,
       exports: [
         MULTI_TENANT_CONFIG_SERVICE,
         TENANT_CONTEXT_SERVICE,
         TENANT_CONNECTION_SERVICE,
+        TENANT_VALIDATION_STRATEGY,
         TenantDataSourceProvider,
-        ...(options.enableAdminModule === false ? [] : [TENANT_ADMIN_SERVICE]),
+        ...(options.validationStrategy === 'local' &&
+        options.enableAdminModule !== false
+          ? [TENANT_MANAGEMENT_STRATEGY]
+          : []),
       ],
     };
   }
 
   static forRootAsync(options: MultiTenantModuleAsyncOptions): DynamicModule {
-    const providers: Provider[] = [
+    const asyncProviders: Provider[] = [
       {
         provide: 'MULTI_TENANT_OPTIONS',
         useFactory: options.useFactory,
@@ -121,41 +204,192 @@ export class MultiTenantModule implements NestModule {
         useClass: TenantConnectionService,
       },
       TenantDataSourceProvider,
-      {
-        provide: TENANT_ADMIN_SERVICE,
-        useClass: TenantAdminService,
-      },
     ];
 
-    const imports: unknown[] = [
-      ...(options.imports || []),
-      // Always include admin database connection for forRootAsync
-      // The enableAdminModule flag will be checked at runtime
-      TypeOrmModule.forRootAsync({
-        name: 'admin',
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => {
-          // Use default database config since we can't access module options here
-          // The enableAdminModule flag will be checked at runtime in services
-          return getAdminDatabaseConfig(configService);
+    // Validation strategy
+    if (options.validationStrategyProvider) {
+      asyncProviders.push(options.validationStrategyProvider);
+    } else {
+      // Create the strategy based on the options
+      asyncProviders.push({
+        provide: TENANT_VALIDATION_STRATEGY,
+        useFactory: (
+          moduleOptions: MultiTenantModuleOptions,
+          httpService?: HttpService,
+          tenantRepository?: Repository<Tenant>,
+        ) => {
+          const strategy = moduleOptions.validationStrategy || 'local';
+
+          switch (strategy) {
+            case 'remote': {
+              if (!httpService) {
+                throw new Error(
+                  'HttpService is required for remote validation strategy. Add HttpModule to imports.',
+                );
+              }
+              return new RemoteTenantValidationStrategy(
+                httpService,
+                moduleOptions.remoteServiceUrl!,
+              );
+            }
+
+            case 'local': {
+              if (!tenantRepository) {
+                throw new Error(
+                  'TenantRepository is required for local validation strategy. Add TypeOrmModule.forFeature([Tenant]) to imports of MultiTenantModule',
+                );
+              }
+              return new LocalTenantValidationStrategy(tenantRepository);
+            }
+
+            case 'custom': {
+              throw new Error(
+                'Custom validation strategy requires validationStrategyProvider',
+              );
+            }
+
+            default: {
+              throw new Error(
+                'Invalid validation strategy. Use "remote", "local", or "custom"',
+              );
+            }
+          }
         },
-      }),
-      TypeOrmModule.forFeature([Tenant], 'admin'),
-    ];
+        inject: [
+          'MULTI_TENANT_OPTIONS',
+          {
+            token: HttpService,
+            optional: true,
+          },
+          {
+            token: getRepositoryToken(Tenant, 'admin'),
+            optional: true,
+          },
+        ],
+      });
+    }
+
+    // Management strategy if provided
+    if (options.managementStrategyProvider) {
+      asyncProviders.push(options.managementStrategyProvider);
+    } else {
+      // Provider conditional for management
+      asyncProviders.push({
+        provide: TENANT_MANAGEMENT_STRATEGY,
+        useFactory: (
+          moduleOptions: MultiTenantModuleOptions,
+          tenantRepository?: Repository<Tenant>,
+          dataSource?: DataSource,
+          configService?: IMultiTenantConfigService,
+        ) => {
+          if (
+            moduleOptions.validationStrategy === 'local' &&
+            moduleOptions.enableAdminModule !== false
+          ) {
+            if (!tenantRepository) {
+              throw new Error(
+                'TenantRepository and DataSource required for local admin. Add TypeOrmModule.forFeature([Tenant]) to imports of MultiTenantModule',
+              );
+            }
+            if (!dataSource) {
+              throw new Error(
+                'DataSource required for local admin. Add TypeOrmModule.forRoot() to imports of AppModule',
+              );
+            }
+            return new TenantAdminService(
+              tenantRepository,
+              dataSource,
+              configService,
+            );
+          }
+          // If it is not local or disabled, returns undefined.
+          return;
+        },
+        inject: [
+          'MULTI_TENANT_OPTIONS',
+          {
+            token: getRepositoryToken(Tenant, 'admin'),
+            optional: true,
+          },
+          {
+            token: DataSource,
+            optional: true,
+          },
+          {
+            token: MULTI_TENANT_CONFIG_SERVICE,
+            optional: true,
+          },
+        ],
+      });
+    }
+
+    // Load controllers conditionally
+    const controllerLoader: Provider = {
+      provide: 'CONTROLLER_LOADER',
+      useFactory: (moduleOptions: MultiTenantModuleOptions) => {
+        return moduleOptions.customControllers || [];
+      },
+      inject: ['MULTI_TENANT_OPTIONS'],
+    };
+
+    asyncProviders.push(controllerLoader);
 
     return {
       module: MultiTenantModule,
-      imports: imports as ImportType,
-      providers,
-      controllers: [TenantAdminController],
+      imports: options.imports || [],
+      providers: asyncProviders,
+      controllers: options.controllers || [],
       exports: [
         MULTI_TENANT_CONFIG_SERVICE,
         TENANT_CONTEXT_SERVICE,
         TENANT_CONNECTION_SERVICE,
+        TENANT_VALIDATION_STRATEGY,
         TenantDataSourceProvider,
-        TENANT_ADMIN_SERVICE,
+        TENANT_MANAGEMENT_STRATEGY,
       ],
     };
+  }
+
+  /**
+   * Resolves the validation strategy based on the options.
+   * @param options The options for the module.
+   * @returns The validation strategy provider.
+   */
+  private static resolveValidationStrategy(
+    options: MultiTenantModuleOptions,
+  ): Provider {
+    switch (options.validationStrategy) {
+      case 'remote': {
+        return {
+          provide: TENANT_VALIDATION_STRATEGY,
+          useFactory: (httpService: HttpService) => {
+            if (!httpService) {
+              throw new Error(
+                'HttpService is required for remote validation strategy. Add HttpModule to imports',
+              );
+            }
+            return new RemoteTenantValidationStrategy(
+              httpService,
+              options.remoteServiceUrl!,
+            );
+          },
+          inject: [{ token: HttpService, optional: false }],
+        };
+      }
+      case 'custom': {
+        // The developer must provide their own strategy in customProviders.
+        return {
+          provide: TENANT_VALIDATION_STRATEGY,
+          useValue: undefined, // It will be overwritten by customProviders.
+        };
+      }
+      default: {
+        return {
+          provide: TENANT_VALIDATION_STRATEGY,
+          useClass: LocalTenantValidationStrategy,
+        };
+      }
+    }
   }
 
   /**
