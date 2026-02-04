@@ -12,7 +12,7 @@ import {
   getEntityRegistryConfig,
   getEntityRegistryDebugInfo,
   validateEntityNames,
-} from '../../../src/utils/entity-registry.utils';
+} from '../../../src/core/utils/entity-registry.utils';
 
 class DummyUser {}
 class DummyRole {}
