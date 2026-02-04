@@ -16,35 +16,35 @@ import { ModuleRef } from '@nestjs/core';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
+import { TenantAdminController } from './admin/controllers/tenant-admin.controller';
+import { Tenant } from './admin/entities/tenant.entity';
+import { TENANT_ADMIN_SERVICE } from './admin/interfaces/tenant-admin.interface';
+import { TENANT_MANAGEMENT_STRATEGY } from './admin/interfaces/tenant-management.interface';
+import { TENANT_VALIDATION_STRATEGY } from './admin/interfaces/tenant-validation.interface';
+import { TenantAdminService } from './admin/services/tenant-admin.service';
 import { getAdminDatabaseConfig } from './config/database.config';
-import { TENANT_ADMIN_SERVICE } from './interface/core.interface';
 import {
   IMultiTenantConfigService,
   MultiTenantModuleAsyncOptions,
   MultiTenantModuleOptions,
-} from './interface/tenant.interface';
-import { TENANT_MANAGEMENT_STRATEGY } from './interface/tenant-management.interface';
-import { TENANT_VALIDATION_STRATEGY } from './interface/tenant-validation.interface';
-import { TenantFastifyMiddleware } from './middleware/tenant-fastify.middleware';
-import { TenantResolverMiddleware } from './middleware/tenant-resolver.middleware';
-import { TenantAdminController } from './modules/controllers/tenant-admin.controller';
-import { Tenant } from './modules/entities/tenant.entity';
+} from './core/interfaces/tenant.interface';
+import { TenantFastifyMiddleware } from './core/middleware/tenant-fastify.middleware';
+import { TenantResolverMiddleware } from './core/middleware/tenant-resolver.middleware';
+import { TenantDataSourceProvider } from './core/providers/tenant-repository.provider';
 import {
   MULTI_TENANT_CONFIG_SERVICE,
   MultiTenantConfigService,
-} from './modules/service/multi-tenant-config.service';
-import { TenantAdminService } from './modules/service/tenant-admin.service';
+} from './core/services/multi-tenant-config.service';
 import {
   TENANT_CONNECTION_SERVICE,
   TenantConnectionService,
-} from './modules/service/tenant-connection.service';
+} from './core/services/tenant-connection.service';
 import {
   TENANT_CONTEXT_SERVICE,
   TenantContextService,
-} from './modules/service/tenant-context.service';
-import { TenantDataSourceProvider } from './providers/tenant-repository.provider';
-import { LocalTenantValidationStrategy } from './strategies/local-tenant-validation.strategy';
-import { RemoteTenantValidationStrategy } from './strategies/remote-tenant-validation.strategy';
+} from './core/services/tenant-context.service';
+import { LocalTenantValidationStrategy } from './core/strategies/local-tenant-validation.strategy';
+import { RemoteTenantValidationStrategy } from './core/strategies/remote-tenant-validation.strategy';
 
 type ImportType = (Type<unknown> | DynamicModule | Promise<DynamicModule>)[];
 

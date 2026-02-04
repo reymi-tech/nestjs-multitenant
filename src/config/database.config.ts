@@ -2,10 +2,10 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { EntitySchema } from 'typeorm';
 
+import { Tenant } from '../admin/entities/tenant.entity';
 import { EntityName } from '../constants';
-import { DatabaseConfig } from '../interface/typeorm.interface';
-import { Tenant } from '../modules/entities/tenant.entity';
-import { getEntityClasses } from '../utils/entity-registry.utils';
+import { DatabaseConfig } from '../core/interfaces/typeorm.interface';
+import { getEntityClasses } from '../core/utils/entity-registry.utils';
 
 /**
  * Configures the database connection for administrative operations.

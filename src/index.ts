@@ -1,12 +1,12 @@
 // Core modules
-export { AdminModule } from './modules/admin/admin.module';
+export { AdminModule } from './admin/admin.module';
 export { MultiTenantModule } from './multi-tenant.module';
 
 // Services
-export { MultiTenantConfigService } from './modules/service/multi-tenant-config.service';
-export { TenantAdminService } from './modules/service/tenant-admin.service';
-export { TenantConnectionService } from './modules/service/tenant-connection.service';
-export { TenantContextService } from './modules/service/tenant-context.service';
+export { TenantAdminService } from './admin/services/tenant-admin.service';
+export { MultiTenantConfigService } from './core/services/multi-tenant-config.service';
+export { TenantConnectionService } from './core/services/tenant-connection.service';
+export { TenantContextService } from './core/services/tenant-context.service';
 
 // Providers
 export {
@@ -15,28 +15,33 @@ export {
   createTenantRepositoryProvider,
   createTenantRepositoryProviders,
   TenantDataSourceProvider,
-} from './providers/tenant-repository.provider';
+} from './core/providers/tenant-repository.provider';
 
 // Decorators
 export {
   InjectTenantDataSource,
   InjectTenantRepository,
   InjectTenantRepositoryFactory,
-} from './decorators/inject-tenant-repository.decorator';
+} from './core/decorators/inject-tenant-repository.decorator';
 
 // Middleware
-export { TenantFastifyMiddleware } from './middleware/tenant-fastify.middleware';
-export { TenantResolverMiddleware } from './middleware/tenant-resolver.middleware';
+export { TenantFastifyMiddleware } from './core/middleware/tenant-fastify.middleware';
+export { TenantResolverMiddleware } from './core/middleware/tenant-resolver.middleware';
 
 // Entities
-export { Tenant } from './modules/entities/tenant.entity';
+export { Tenant } from './admin/entities/tenant.entity';
 
 // DTOs
-export { CreateTenantDto } from './modules/dto/create-tenant.dto';
-export { TenantFilterDto } from './modules/dto/filter-tenant.dto';
-export { UpdateTenantDto } from './modules/dto/update-tenant.dto';
+export { CreateTenantDto } from './admin/dto/create-tenant.dto';
+export { TenantFilterDto } from './admin/dto/filter-tenant.dto';
+export { UpdateTenantDto } from './admin/dto/update-tenant.dto';
 
 // Interfaces
+export {
+  ITenantManagementStrategy,
+  TENANT_MANAGEMENT_STRATEGY,
+} from './admin/interfaces/tenant-management.interface';
+export { TENANT_VALIDATION_STRATEGY } from './admin/interfaces/tenant-validation.interface';
 export {
   IEntityConfig,
   IMultiTenantConfigService,
@@ -48,18 +53,13 @@ export {
   MultiTenantModuleOptions,
   PlatformType,
   TenantResolutionConfig,
-} from './interface/tenant.interface';
-export {
-  ITenantManagementStrategy,
-  TENANT_MANAGEMENT_STRATEGY,
-} from './interface/tenant-management.interface';
+} from './core/interfaces/tenant.interface';
 export {
   ITenantMiddlewareExpress,
   ITenantMiddlewareFastify,
   TenantExpressRequest,
   TenantFastifyRequest,
-} from './interface/tenant-middleware.interface';
-export { TENANT_VALIDATION_STRATEGY } from './interface/tenant-validation.interface';
+} from './core/interfaces/tenant-middleware.interface';
 
 // Enums
 // export { Platform } from "./enums/platform.enum";
@@ -67,12 +67,12 @@ export { TENANT_VALIDATION_STRATEGY } from './interface/tenant-validation.interf
 export {
   EntityRegistryConfig,
   EntityValidationResult,
-} from './interface/entity-registry.interface';
+} from './core/interfaces/entity-registry.interface';
 export {
   ConnectionPoolConfig,
   DatabaseConfig,
   IConnectionPoolStats,
-} from './interface/typeorm.interface';
+} from './core/interfaces/typeorm.interface';
 
 // Configuration
 export {
@@ -105,15 +105,15 @@ export {
 } from './constants';
 
 // Utilities
-export { createTenantStrategyProvider } from './utils/create-tenant-strategy.provider';
+export { createTenantStrategyProvider } from './core/utils/create-tenant-strategy.provider';
 export {
   configureEntityRegistry,
   getEntityClasses,
   getEntityRegistryConfig,
   getEntityRegistryDebugInfo,
   validateEntityNames,
-} from './utils/entity-registry.utils';
+} from './core/utils/entity-registry.utils';
 export {
   getTenantRepositoryToken,
   TOKEN_CONSTANTS,
-} from './utils/generate-token.provider';
+} from './core/utils/generate-token.provider';
