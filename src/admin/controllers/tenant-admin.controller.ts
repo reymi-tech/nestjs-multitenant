@@ -21,6 +21,7 @@ import {
   TENANT_ADMIN_SERVICE,
   TenantStats,
 } from '../interfaces/tenant-admin.interface';
+import { Tenant as TenantSchema } from '../schema/tenant.schema';
 
 /**
  * Tenant Admin Controller
@@ -38,7 +39,9 @@ export class TenantAdminController implements ITenantAdminController {
    * @param createTenantDto Tenant data to create
    */
   @Post()
-  create(@Body() createTenantDto: CreateTenantDto): Promise<Tenant> {
+  create(
+    @Body() createTenantDto: CreateTenantDto,
+  ): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.create(createTenantDto);
   }
 
@@ -56,7 +59,7 @@ export class TenantAdminController implements ITenantAdminController {
    * @param id Tenant id to get
    */
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Tenant> {
+  findOne(@Param('id') id: string): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.findOne(id);
   }
 
@@ -69,7 +72,7 @@ export class TenantAdminController implements ITenantAdminController {
   update(
     @Param('id') id: string,
     @Body() updateTenantDto: UpdateTenantDto,
-  ): Promise<Tenant> {
+  ): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.update(id, updateTenantDto);
   }
 
@@ -92,7 +95,7 @@ export class TenantAdminController implements ITenantAdminController {
    * @param id Tenant id to activate
    */
   @Patch(':id/activate')
-  activate(@Param('id') id: string): Promise<Tenant> {
+  activate(@Param('id') id: string): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.activate(id);
   }
 
@@ -101,7 +104,7 @@ export class TenantAdminController implements ITenantAdminController {
    * @param id Tenant id to deactivate
    */
   @Patch(':id/deactivate')
-  deactivate(@Param('id') id: string): Promise<Tenant> {
+  deactivate(@Param('id') id: string): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.deactivate(id);
   }
 
@@ -110,7 +113,7 @@ export class TenantAdminController implements ITenantAdminController {
    * @param code Tenant code
    */
   @Get('code/:code')
-  findByCode(@Param('code') code: string): Promise<Tenant> {
+  findByCode(@Param('code') code: string): Promise<Tenant | TenantSchema> {
     return this.tenantAdminService.findByCode(code);
   }
 

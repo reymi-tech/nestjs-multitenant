@@ -1,8 +1,8 @@
 import { DynamicModule, ModuleMetadata, Provider, Type } from '@nestjs/common';
-import { DataSource } from 'typeorm';
 
 import { EntityRegistryType } from '../../config/entity.registry';
 import { EntityName, TenantPreset, TenantStatus } from '../../constants';
+import { OrmConfig, TenantOrmConnection } from './orm-abstraction.interface';
 import {
   ConnectionPoolConfig,
   DatabaseConfig,
@@ -74,6 +74,11 @@ export interface TenantResolutionConfig {
 export type PlatformType = 'express' | 'fastify';
 
 export interface MultiTenantModuleOptions {
+  /**
+   * ORM configuration
+   * Specify which ORM to use and its configuration
+   */
+  orm?: OrmConfig;
   /**
    * Database configuration for tenant connections
    */
@@ -149,45 +154,72 @@ export interface MultiTenantModuleOptions {
 
 export interface MultiTenantModuleAsyncOptions
   extends Pick<ModuleMetadata, 'imports'> {
+  /**
+   * Factory function to create module options
+   */
   useFactory: (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...args: any[]
   ) => Promise<MultiTenantModuleOptions> | MultiTenantModuleOptions;
+  /**
+   * Dependencies to inject into the factory function
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   inject?: any[];
 
+  /**
+   * Controllers to register
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers?: Type<any>[];
 
+  /**
+   * Custom validation strategy provider
+   */
   validationStrategyProvider?: Provider;
 
+  /**
+   * Custom management strategy provider
+   */
   managementStrategyProvider?: Provider;
+
+  /**
+   * Custom ORM strategy provider
+   */
+  ormStrategyProvider?: Provider;
 }
 
 export interface IMultiTenantConfigService {
   getDatabaseConfig(): DatabaseConfig;
-
   getTenantResolutionConfig(): TenantResolutionConfig;
-
   getConnectionPoolConfig(): ConnectionPoolConfig;
-
   isAdminModuleEnable(): boolean;
-
   getEntityRegistry(): EntityRegistryType;
-
   getDefaultEntityPresets(): Record<TenantPreset, EntityName[]>;
-
   isAutoCreateSchemasEnabled(): boolean;
-
   getSchemaNamingStrategy(): (tenantId: string) => string;
-
   getAllOptions(): MultiTenantModuleOptions;
 }
 
 export interface ITenantConnectionService {
-  getConnectionForSchema(schema: string): Promise<DataSource>;
-  getTenantConnection(): Promise<DataSource>;
+  getConnectionForSchema(schema: string): Promise<TenantOrmConnection>;
+  getTenantConnection(): Promise<TenantOrmConnection>;
   closeAllConnections(): Promise<void>;
   getConnectionPoolStats(): IConnectionPoolStats;
   removeConnection(schema: string): Promise<void>;
+  getOrmType(): string;
 }
+
+// /**
+//  * Repository factory type for TypeORM
+//  */
+// export type TenantRepositoryFactory<T> = (
+//   tenantId: string,
+// ) => Promise<import('typeorm').Repository<T>>;
+
+// /**
+//  * Database factory type for Drizzle
+//  */
+// export type TenantDrizzleDbFactory = (
+//   tenantId: string,
+// ) => Promise<import('drizzle-orm/node-postgres').NodePgDatabase>;

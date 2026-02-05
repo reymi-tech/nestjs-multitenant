@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { Tenant } from '../../admin/entities/tenant.entity';
-import { ITenantValidationStrategy } from '../../admin/interfaces/tenant-validation.interface';
+import { Tenant } from '../../../admin/entities/tenant.entity';
+import { ITenantValidationStrategy } from '../../interfaces/tenant-validation.interface';
 
 @Injectable()
 export class LocalTenantValidationStrategy

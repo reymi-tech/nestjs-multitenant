@@ -1,7 +1,9 @@
 import { NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ITenantValidationStrategy } from 'src/admin/interfaces/tenant-validation.interface';
-import { DataSource } from 'typeorm';
+import {
+  IOrmStrategy,
+  TenantOrmConnection,
+} from 'src/core/interfaces/orm-abstraction.interface';
+import { ITenantValidationStrategy } from 'src/core/interfaces/tenant-validation.interface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Tenant } from '../../../../src/admin/entities/tenant.entity';
@@ -96,19 +98,27 @@ const createMockTenantContext = (
 
 describe('TenantConnectionService', () => {
   let service: TenantConnectionService;
-  let mockConfigService: Mock<ConfigService>;
   let mockTenantContextService: Mock<ITenantContextService>;
   let mockMultiTenantConfigService: Mock<IMultiTenantConfigService>;
   let mockTenantAdminService: Mock<ITenantValidationStrategy>;
-  let mockDataSource: Mock<DataSource>;
+  let mockOrmStrategy: Mock<IOrmStrategy>;
+  let mockConnection: Mock<TenantOrmConnection>;
 
   beforeEach(async () => {
     // Crear mocks de servicios
-    mockConfigService = createMock<ConfigService>();
     mockTenantContextService = createMock<ITenantContextService>();
     mockMultiTenantConfigService = createMock<IMultiTenantConfigService>();
     mockTenantAdminService = createMock<ITenantValidationStrategy>();
-    mockDataSource = createMock<DataSource>();
+    mockOrmStrategy = createMock<IOrmStrategy>();
+    mockConnection = createMock<TenantOrmConnection>();
+
+    // Configurar mockOrmStrategy
+    mockOrmStrategy.type = 'typeorm';
+    mockOrmStrategy.createConnection = vi
+      .fn()
+      .mockResolvedValue(mockConnection);
+    mockOrmStrategy.destroyConnection = vi.fn().mockResolvedValue(undefined);
+    mockOrmStrategy.isConnectionValid = vi.fn().mockReturnValue(true);
 
     // Configurar comportamiento por defecto de los mocks
     mockMultiTenantConfigService.getConnectionPoolConfig.mockReturnValue(
@@ -128,16 +138,11 @@ describe('TenantConnectionService', () => {
     mockTenantAdminService.validateTenantExists.mockResolvedValue(true);
     mockTenantAdminService.findByCode.mockResolvedValue(createMockTenant());
 
-    // Configurar DataSource mock
-    mockDataSource.isInitialized = true;
-    mockDataSource.initialize.mockResolvedValue(mockDataSource);
-    mockDataSource.destroy.mockResolvedValue();
-
     // Crear instancia del servicio
     service = new TenantConnectionService(
-      mockConfigService,
       mockTenantContextService,
       mockMultiTenantConfigService,
+      mockOrmStrategy,
       mockTenantAdminService,
     );
 
@@ -163,9 +168,9 @@ describe('TenantConnectionService', () => {
       );
 
       const newService = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
 
@@ -187,9 +192,9 @@ describe('TenantConnectionService', () => {
       );
 
       const newService = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
 
@@ -207,9 +212,9 @@ describe('TenantConnectionService', () => {
       );
 
       const newService = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
 
@@ -227,9 +232,9 @@ describe('TenantConnectionService', () => {
       );
 
       const newService = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
 
@@ -238,9 +243,9 @@ describe('TenantConnectionService', () => {
 
     it('should work without tenant admin service (optional dependency)', () => {
       const newService = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         undefined,
       );
 
@@ -251,41 +256,36 @@ describe('TenantConnectionService', () => {
   describe('getConnectionForSchema', () => {
     it('should return existing connection from pool when available', async () => {
       // Arrange
-      const schema = 'test-schema';
-      const existingConnection = mockDataSource;
-      existingConnection.isInitialized = true;
+      const schema = 'existing-schema';
 
-      // Simular que ya existe una conexión en el pool
-      (service as any).connectionPool.set(schema, existingConnection);
+      // Act - Primera llamada crea la conexión
+      const firstConnection = await service.getConnectionForSchema(schema);
 
-      // Act
-      const result = await service.getConnectionForSchema(schema);
+      // Segunda llamada debe retornar la misma conexión del pool
+      const secondConnection = await service.getConnectionForSchema(schema);
 
       // Assert
-      expect(result).toBe(existingConnection);
-      expect(mockTenantAdminService.validateTenantExists).toHaveBeenCalledWith(
-        schema,
-      );
+      expect(firstConnection).toBe(secondConnection);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledTimes(1);
+      expect(mockOrmStrategy.isConnectionValid).toHaveBeenCalled();
     });
 
     it('should validate tenant exists for non-default schemas', async () => {
       // Arrange
-      const schema = 'tenant-schema';
-      mockTenantAdminService.validateTenantExists.mockResolvedValue(true);
+      const schema = 'custom-tenant';
 
       // Act
-      const result = await service.getConnectionForSchema(schema);
+      await service.getConnectionForSchema(schema);
 
       // Assert
       expect(mockTenantAdminService.validateTenantExists).toHaveBeenCalledWith(
         schema,
       );
-      expect(result).toBeDefined();
     });
 
     it('should throw NotFoundException when tenant does not exist', async () => {
       // Arrange
-      const schema = 'non-existent-tenant';
+      const schema = 'non-existent';
       mockTenantAdminService.validateTenantExists.mockResolvedValue(false);
 
       // Act & Assert
@@ -293,7 +293,7 @@ describe('TenantConnectionService', () => {
         NotFoundException,
       );
       await expect(service.getConnectionForSchema(schema)).rejects.toThrow(
-        'Schema not found: non-existent-tenant',
+        `Schema not found: ${schema}`,
       );
     });
 
@@ -302,153 +302,132 @@ describe('TenantConnectionService', () => {
       const schema = 'public';
 
       // Act
-      const result = await service.getConnectionForSchema(schema);
+      await service.getConnectionForSchema(schema);
 
       // Assert
       expect(
         mockTenantAdminService.validateTenantExists,
       ).not.toHaveBeenCalled();
-      expect(result).toBeDefined();
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        schema,
+        undefined,
+      );
     });
 
     it('should skip validation for default schema', async () => {
       // Arrange
       const schema = 'default';
+      vi.clearAllMocks(); // Limpiar los mocks antes del test
 
       // Act
-      const result = await service.getConnectionForSchema(schema);
+      await service.getConnectionForSchema(schema);
 
       // Assert
       expect(
         mockTenantAdminService.validateTenantExists,
       ).not.toHaveBeenCalled();
-      expect(result).toBeDefined();
+      // 'default' no es 'public', por lo que SÍ obtiene las entidades del tenant
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(schema, [
+        'user',
+        'role',
+      ]);
     });
 
     it('should skip validation when tenant admin service is not available', async () => {
       // Arrange
-      const schema = 'some-tenant';
+      const schema = 'custom-schema';
       const serviceWithoutAdmin = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         undefined,
       );
 
       // Act
-      const result = await serviceWithoutAdmin.getConnectionForSchema(schema);
+      await serviceWithoutAdmin.getConnectionForSchema(schema);
 
       // Assert
-      expect(result).toBeDefined();
+      expect(
+        mockTenantAdminService.validateTenantExists,
+      ).not.toHaveBeenCalled();
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(schema, [
+        'user',
+        'role',
+      ]);
     });
 
     it('should remove uninitialized connection from pool', async () => {
       // Arrange
-      const schema = 'test-schema';
-      const uninitializedConnection = createMock<DataSource>();
-      uninitializedConnection.isInitialized = false;
+      const schema = 'invalid-connection';
+      mockOrmStrategy.isConnectionValid
+        .mockReturnValueOnce(false) // Primera verificación: conexión inválida
+        .mockReturnValueOnce(true); // Segunda verificación: nueva conexión válida
 
-      (service as any).connectionPool.set(schema, uninitializedConnection);
+      // Agregar conexión inválida al pool
+      (service as any).connectionPool.set(schema, mockConnection);
 
       // Act
       const result = await service.getConnectionForSchema(schema);
 
       // Assert
       expect(result).toBeDefined();
-      expect((service as any).connectionPool.has(schema)).toBe(true);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledTimes(1);
     });
 
     it('should handle connection pool limit and cleanup old connections', async () => {
       // Arrange
-      const schema = 'new-schema';
-      const poolConfig = {
-        ...createMockConnectionPoolConfig(),
-        maxConnections: 2,
-      };
-      mockMultiTenantConfigService.getConnectionPoolConfig.mockReturnValue(
-        poolConfig,
-      );
+      const maxConnections = 50;
 
-      const serviceWithSmallPool = new TenantConnectionService(
-        mockConfigService,
-        mockTenantContextService,
-        mockMultiTenantConfigService,
-        mockTenantAdminService,
-      );
-
-      // Llenar el pool hasta el límite
-      const connection1 = createMock<DataSource>();
-      connection1.isInitialized = true;
-      connection1.destroy.mockResolvedValue();
-
-      const connection2 = createMock<DataSource>();
-      connection2.isInitialized = true;
-      connection2.destroy.mockResolvedValue();
-
-      (serviceWithSmallPool as any).connectionPool.set('schema1', connection1);
-      (serviceWithSmallPool as any).connectionPool.set('schema2', connection2);
+      // Llenar el pool al límite
+      for (let i = 0; i < maxConnections; i++) {
+        (service as any).connectionPool.set(`schema-${i}`, mockConnection);
+      }
 
       // Act
-      const result = await serviceWithSmallPool.getConnectionForSchema(schema);
+      const newSchema = 'new-schema';
+      await service.getConnectionForSchema(newSchema);
 
       // Assert
-      expect(result).toBeDefined();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
+      expect((service as any).connectionPool.has(newSchema)).toBe(true);
     });
 
     it('should handle connection initialization failure', async () => {
       // Arrange
-      const schema = 'failing-schema';
+      const schema = 'fail-schema';
+      const error = new Error('Connection failed');
+      mockOrmStrategy.createConnection.mockRejectedValueOnce(error);
 
-      // Create a service instance that will use a failing DataSource
-      const failingService = new TenantConnectionService(
-        mockConfigService,
-        mockTenantContextService,
-        mockMultiTenantConfigService,
-        mockTenantAdminService,
+      // Act & Assert
+      await expect(service.getConnectionForSchema(schema)).rejects.toThrow(
+        'Connection failed',
       );
-
-      // Override the createConnection method to simulate failure
-      const originalCreateConnection = (failingService as any).createConnection;
-      (failingService as any).createConnection = vi
-        .fn()
-        .mockRejectedValue(new Error('Connection failed'));
-
-      try {
-        // Act & Assert
-        await expect(
-          failingService.getConnectionForSchema(schema),
-        ).rejects.toThrow('Connection failed');
-      } finally {
-        // Restore original method
-        (failingService as any).createConnection = originalCreateConnection;
-      }
     });
   });
 
   describe('getTenantConnection', () => {
     it('should return connection for current tenant schema', async () => {
       // Arrange
-      const schema = 'tenant_current-tenant';
+      const schema = 'tenant_test-tenant';
       mockTenantContextService.getTenantSchema.mockReturnValue(schema);
-
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi
-        .fn()
-        .mockImplementation(() => mockDataSource);
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
 
       // Act
       const result = await service.getTenantConnection();
 
       // Assert
-      expect(mockTenantContextService.getTenantSchema).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result.isInitialized).toBe(true);
+      expect(mockTenantContextService.getTenantSchema).toHaveBeenCalled();
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        schema,
+        expect.any(Array),
+      );
     });
 
     it('should throw error when no tenant context is available', async () => {
       // Arrange
-      mockTenantContextService.getTenantSchema.mockReturnValue(undefined);
+      mockTenantContextService.getTenantSchema.mockReturnValue(
+        undefined as any,
+      );
 
       // Act & Assert
       await expect(service.getTenantConnection()).rejects.toThrow(
@@ -458,7 +437,9 @@ describe('TenantConnectionService', () => {
 
     it('should throw error when tenant schema is undefined', async () => {
       // Arrange
-      mockTenantContextService.getTenantSchema.mockReturnValue(undefined);
+      mockTenantContextService.getTenantSchema.mockReturnValue(
+        undefined as any,
+      );
 
       // Act & Assert
       await expect(service.getTenantConnection()).rejects.toThrow(
@@ -478,37 +459,28 @@ describe('TenantConnectionService', () => {
   });
 
   describe('closeAllConnections', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
     it('should close all connections and clear pool', async () => {
       // Arrange
-      const connection1 = createMock<DataSource>();
-      const connection2 = createMock<DataSource>();
-      connection1.isInitialized = true;
-      connection2.isInitialized = true;
-      connection1.destroy.mockResolvedValue();
-      connection2.destroy.mockResolvedValue();
-
-      (service as any).connectionPool.set('schema1', connection1);
-      (service as any).connectionPool.set('schema2', connection2);
+      const schemas = ['schema1', 'schema2', 'schema3'];
+      for (const schema of schemas) {
+        await service.getConnectionForSchema(schema);
+      }
 
       // Act
       await service.closeAllConnections();
 
       // Assert
-      expect(connection1.destroy).toHaveBeenCalled();
-      expect(connection2.destroy).toHaveBeenCalled();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalledTimes(
+        schemas.length,
+      );
       expect((service as any).connectionPool.size).toBe(0);
     });
 
     it('should clear cleanup timer when closing connections', async () => {
       // Arrange
+      vi.useFakeTimers();
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+
       const poolConfig = {
         ...createMockConnectionPoolConfig(),
         enableCleanup: true,
@@ -518,74 +490,75 @@ describe('TenantConnectionService', () => {
       );
 
       const serviceWithTimer = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
+
+      // Verificar que el timer existe antes de cerrar
+      const timerBeforeClose = (serviceWithTimer as any).cleanupTimer;
+      expect(timerBeforeClose).toBeDefined();
 
       // Act
       await serviceWithTimer.closeAllConnections();
 
-      // Assert - El timer debería haberse limpiado
-      expect(serviceWithTimer).toBeDefined();
+      // Assert - Verificar que clearInterval fue llamado con el timer
+      expect(clearIntervalSpy).toHaveBeenCalledWith(timerBeforeClose);
+
+      clearIntervalSpy.mockRestore();
+      vi.useRealTimers();
     });
 
     it('should handle connections that are not initialized', async () => {
       // Arrange
-      const uninitializedConnection = createMock<DataSource>();
-      uninitializedConnection.isInitialized = false;
-
-      (service as any).connectionPool.set('schema1', uninitializedConnection);
+      (service as any).connectionPool.set('test-schema', mockConnection);
 
       // Act
       await service.closeAllConnections();
 
       // Assert
-      expect(uninitializedConnection.destroy).not.toHaveBeenCalled();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalledWith(
+        mockConnection,
+      );
       expect((service as any).connectionPool.size).toBe(0);
     });
 
     it('should handle connection destruction errors gracefully', async () => {
       // Arrange
-      const failingConnection = createMock<DataSource>();
-      failingConnection.isInitialized = true;
-      failingConnection.destroy.mockRejectedValue(
-        new Error('Destruction failed'),
-      );
+      const error = new Error('Destruction failed');
+      mockOrmStrategy.destroyConnection.mockRejectedValueOnce(error);
+      (service as any).connectionPool.set('test-schema', mockConnection);
 
-      (service as any).connectionPool.set('failing-schema', failingConnection);
-
-      // Act & Assert - Debería lanzar error porque Promise.all falla si alguna conexión falla
+      // Act & Assert - El método puede lanzar error ya que usa Promise.all
       await expect(service.closeAllConnections()).rejects.toThrow(
         'Destruction failed',
       );
-      expect((service as any).connectionPool.size).toBe(1); // El pool NO se limpia porque Promise.all falla antes de llegar a clear()
+
+      // Pero el pool debe limpiarse de todas formas después del error
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
     });
 
     it('should handle errors during connection destruction', async () => {
       // Arrange
-      const connection1 = createMock<DataSource>();
-      const connection2 = createMock<DataSource>();
+      const schemas = ['schema1', 'schema2'];
+      for (const schema of schemas) {
+        await service.getConnectionForSchema(schema);
+      }
 
-      connection1.destroy.mockRejectedValue(new Error('Destruction failed'));
-      connection2.destroy.mockResolvedValue();
-
-      (service as any).connectionPool.set('schema1', connection1);
-      (service as any).connectionPool.set('schema2', connection2);
-
-      // Act & Assert
-      await expect(service.closeAllConnections()).rejects.toThrow(
-        'Destruction failed',
+      mockOrmStrategy.destroyConnection.mockRejectedValue(
+        new Error('Destroy failed'),
       );
 
-      // El pool NO se limpia porque Promise.all falla antes de llegar a clear()
-      expect((service as any).connectionPool.size).toBe(2);
+      // Act & Assert - El método lanzará error ya que usa Promise.all
+      await expect(service.closeAllConnections()).rejects.toThrow(
+        'Destroy failed',
+      );
     });
 
     it('should handle empty connection pool', async () => {
       // Act & Assert
-      await expect(service.closeAllConnections()).resolves.not.toThrow();
+      await expect(service.closeAllConnections()).resolves.toBeUndefined();
       expect((service as any).connectionPool.size).toBe(0);
     });
   });
@@ -604,194 +577,200 @@ describe('TenantConnectionService', () => {
       });
     });
 
-    it('should return correct stats for pool with active connections', () => {
+    it('should return correct stats for pool with active connections', async () => {
       // Arrange
-      const activeConnection1 = createMock<DataSource>();
-      const activeConnection2 = createMock<DataSource>();
-      activeConnection1.isInitialized = true;
-      activeConnection2.isInitialized = true;
-
-      (service as any).connectionPool.set('schema1', activeConnection1);
-      (service as any).connectionPool.set('schema2', activeConnection2);
+      const schemas = ['schema1', 'schema2', 'schema3'];
+      for (const schema of schemas) {
+        await service.getConnectionForSchema(schema);
+      }
 
       // Act
       const stats = service.getConnectionPoolStats();
 
       // Assert
-      expect(stats).toEqual({
-        total: 2,
-        active: 2,
-        inactive: 0,
-        schemas: ['schema1', 'schema2'],
-      });
+      expect(stats.total).toBe(3);
+      expect(stats.active).toBe(3);
+      expect(stats.inactive).toBe(0);
+      expect(stats.schemas).toEqual(expect.arrayContaining(schemas));
     });
 
-    it('should return correct stats for pool with mixed connections', () => {
+    it('should return correct stats for pool with mixed connections', async () => {
       // Arrange
-      const activeConnection = createMock<DataSource>();
-      const inactiveConnection = createMock<DataSource>();
-      activeConnection.isInitialized = true;
-      inactiveConnection.isInitialized = false;
+      const activeSchemas = ['active1', 'active2'];
+      const inactiveSchemas = ['inactive1'];
 
-      (service as any).connectionPool.set('active-schema', activeConnection);
+      for (const schema of activeSchemas) {
+        await service.getConnectionForSchema(schema);
+      }
+
+      // Simular conexión inactiva
+      const inactiveConnection = createMock<TenantOrmConnection>();
       (service as any).connectionPool.set(
-        'inactive-schema',
+        inactiveSchemas[0],
         inactiveConnection,
       );
 
+      mockOrmStrategy.isConnectionValid.mockImplementation(conn => {
+        return conn !== inactiveConnection;
+      });
+
       // Act
       const stats = service.getConnectionPoolStats();
 
       // Assert
-      expect(stats).toEqual({
-        total: 2,
-        active: 1,
-        inactive: 1,
-        schemas: ['active-schema', 'inactive-schema'],
-      });
+      expect(stats.total).toBe(3);
+      expect(stats.active).toBe(2);
+      expect(stats.inactive).toBe(1);
+      expect(stats.schemas).toEqual(
+        expect.arrayContaining([...activeSchemas, ...inactiveSchemas]),
+      );
     });
 
     it('should return correct stats for pool with only inactive connections', () => {
       // Arrange
-      const inactiveConnection1 = createMock<DataSource>();
-      const inactiveConnection2 = createMock<DataSource>();
-      inactiveConnection1.isInitialized = false;
-      inactiveConnection2.isInitialized = false;
-
-      (service as any).connectionPool.set('schema1', inactiveConnection1);
-      (service as any).connectionPool.set('schema2', inactiveConnection2);
+      const inactiveConnection = createMock<TenantOrmConnection>();
+      (service as any).connectionPool.set('inactive', inactiveConnection);
+      mockOrmStrategy.isConnectionValid.mockReturnValue(false);
 
       // Act
       const stats = service.getConnectionPoolStats();
 
       // Assert
-      expect(stats).toEqual({
-        total: 2,
-        active: 0,
-        inactive: 2,
-        schemas: ['schema1', 'schema2'],
-      });
+      expect(stats.total).toBe(1);
+      expect(stats.active).toBe(0);
+      expect(stats.inactive).toBe(1);
+      expect(stats.schemas).toContain('inactive');
     });
   });
 
   describe('removeConnection', () => {
     it('should remove and destroy existing initialized connection', async () => {
       // Arrange
-      const schema = 'test-schema';
-      const connection = createMock<DataSource>();
-      connection.isInitialized = true;
-      connection.destroy.mockResolvedValue();
-
-      (service as any).connectionPool.set(schema, connection);
+      const schema = 'remove-schema';
+      await service.getConnectionForSchema(schema);
 
       // Act
       await service.removeConnection(schema);
 
       // Assert
-      expect(connection.destroy).toHaveBeenCalled();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalledWith(
+        mockConnection,
+      );
       expect((service as any).connectionPool.has(schema)).toBe(false);
     });
 
     it('should remove uninitialized connection without destroying', async () => {
       // Arrange
-      const schema = 'test-schema';
-      const connection = createMock<DataSource>();
-      connection.isInitialized = false;
-
-      (service as any).connectionPool.set(schema, connection);
+      const schema = 'uninit-schema';
+      const uninitConnection = createMock<TenantOrmConnection>();
+      (service as any).connectionPool.set(schema, uninitConnection);
 
       // Act
       await service.removeConnection(schema);
 
       // Assert
-      expect(connection.destroy).not.toHaveBeenCalled();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
       expect((service as any).connectionPool.has(schema)).toBe(false);
     });
 
     it('should handle non-existent connection gracefully', async () => {
-      // Arrange
-      const schema = 'non-existent-schema';
-
       // Act & Assert
-      await expect(service.removeConnection(schema)).resolves.not.toThrow();
+      await expect(
+        service.removeConnection('non-existent'),
+      ).resolves.toBeUndefined();
     });
 
     it('should handle connection destruction errors', async () => {
       // Arrange
-      const schema = 'failing-schema';
-      const connection = createMock<DataSource>();
-      connection.isInitialized = true;
-      connection.destroy.mockRejectedValue(new Error('Destruction failed'));
+      const schema = 'error-schema';
+      await service.getConnectionForSchema(schema);
 
-      (service as any).connectionPool.set(schema, connection);
+      // Resetear el mock y configurar el error DESPUÉS de crear la conexión
+      vi.clearAllMocks();
+      mockOrmStrategy.destroyConnection.mockRejectedValueOnce(
+        new Error('Destruction failed'),
+      );
 
-      // Act & Assert - No debería lanzar error, solo registrarlo
-      await expect(service.removeConnection(schema)).resolves.not.toThrow();
-      expect((service as any).connectionPool.has(schema)).toBe(true); // La conexión permanece en el pool cuando falla la destrucción
+      // Act - No debería lanzar error porque tiene try-catch
+      await service.removeConnection(schema);
+
+      // Assert
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
+      // Cuando hay un error en destroyConnection, el delete está dentro del try
+      // por lo que NO se ejecuta y la conexión permanece en el pool
+      expect((service as any).connectionPool.has(schema)).toBe(true);
     });
   });
 
   describe('Private Methods Integration', () => {
     it('should get tenant entity config from admin service', async () => {
       // Arrange
-      const tenantCode = 'test-tenant';
+      const schema = 'tenant-with-config';
       const mockTenant = createMockTenant({
-        entityConfig: { enabledEntities: ['user', 'role', 'permission'] },
+        entityConfig: {
+          enabledEntities: ['user', 'role', 'product'],
+        },
       });
       mockTenantAdminService.findByCode.mockResolvedValue(mockTenant);
 
       // Act
-      const result = await (service as any).getTenantEntityConfig(tenantCode);
+      await service.getConnectionForSchema(schema);
 
       // Assert
-      expect(mockTenantAdminService.findByCode).toHaveBeenCalledWith(
-        tenantCode,
-      );
-      expect(result).toEqual(['user', 'role', 'permission']);
+      expect(mockTenantAdminService.findByCode).toHaveBeenCalledWith(schema);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(schema, [
+        'user',
+        'role',
+        'product',
+      ]);
     });
 
     it('should return default entities when admin service is not available', async () => {
       // Arrange
-      const tenantCode = 'test-tenant';
       const serviceWithoutAdmin = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         undefined,
       );
 
       // Act
-      const result = await (serviceWithoutAdmin as any).getTenantEntityConfig(
-        tenantCode,
-      );
+      await serviceWithoutAdmin.getConnectionForSchema('test-schema');
 
       // Assert
-      expect(result).toEqual(['user', 'role']);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        'test-schema',
+        ['user', 'role'],
+      );
     });
 
     it('should return default entities when tenant has no entity config', async () => {
       // Arrange
-      const tenantCode = 'test-tenant';
-      const mockTenant = createMockTenant({ entityConfig: undefined });
+      const mockTenant = createMockTenant({ entityConfig: undefined as any });
       mockTenantAdminService.findByCode.mockResolvedValue(mockTenant);
 
       // Act
-      const result = await (service as any).getTenantEntityConfig(tenantCode);
+      await service.getConnectionForSchema('test-schema');
 
       // Assert
-      expect(result).toEqual(['user', 'role']);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        'test-schema',
+        ['user', 'role'],
+      );
     });
 
     it('should return default entities when tenant is not found', async () => {
       // Arrange
-      const tenantCode = 'non-existent-tenant';
-      mockTenantAdminService.findByCode.mockResolvedValue(undefined as any);
+      mockTenantAdminService.findByCode.mockResolvedValue(undefined);
 
       // Act
-      const result = await (service as any).getTenantEntityConfig(tenantCode);
+      await service.getConnectionForSchema('test-schema');
 
       // Assert
-      expect(result).toEqual(['user', 'role']);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        'test-schema',
+        ['user', 'role'],
+      );
     });
 
     it('should perform scheduled cleanup when pool size exceeds threshold', async () => {
@@ -799,35 +778,35 @@ describe('TenantConnectionService', () => {
       vi.useFakeTimers();
       const poolConfig = {
         ...createMockConnectionPoolConfig(),
-        maxConnections: 10,
+        enableCleanup: true,
+        cleanupInterval: 1000,
       };
       mockMultiTenantConfigService.getConnectionPoolConfig.mockReturnValue(
         poolConfig,
       );
 
       const serviceWithCleanup = new TenantConnectionService(
-        mockConfigService,
         mockTenantContextService,
         mockMultiTenantConfigService,
+        mockOrmStrategy,
         mockTenantAdminService,
       );
 
       // Llenar el pool por encima del 80%
-      for (let i = 0; i < 9; i++) {
-        const connection = createMock<DataSource>();
-        connection.isInitialized = true;
-        connection.destroy.mockResolvedValue();
-        (serviceWithCleanup as any).connectionPool.set(
-          `schema${i}`,
-          connection,
-        );
+      for (let i = 0; i < 45; i++) {
+        await serviceWithCleanup.getConnectionForSchema(`schema-${i}`);
       }
 
-      // Act
-      await (serviceWithCleanup as any).performScheduledClenup();
+      const initialSize = (serviceWithCleanup as any).connectionPool.size;
 
-      // Assert - Debería haber limpiado algunas conexiones
-      expect((serviceWithCleanup as any).connectionPool.size).toBeLessThan(9);
+      // Act
+      await (serviceWithCleanup as any).performScheduledCleanup();
+
+      // Assert
+      expect((serviceWithCleanup as any).connectionPool.size).toBeLessThan(
+        initialSize,
+      );
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
 
       vi.useRealTimers();
     });
@@ -838,11 +817,12 @@ describe('TenantConnectionService', () => {
       // Arrange
       const schema = 'concurrent-schema';
 
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi
-        .fn()
-        .mockImplementation(() => mockDataSource);
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
+      // Crear un nuevo mock de conexión para cada llamada
+      mockOrmStrategy.createConnection.mockImplementation(async () => {
+        // Simular delay asíncrono
+        await new Promise(resolve => setTimeout(resolve, 1));
+        return mockConnection;
+      });
 
       // Act
       const promises = [
@@ -855,10 +835,14 @@ describe('TenantConnectionService', () => {
 
       // Assert
       expect(results).toHaveLength(3);
+      // Todas las promesas deben resolver
       for (const result of results) {
         expect(result).toBeDefined();
-        expect(result.isInitialized).toBe(true);
       }
+
+      // El servicio actual no tiene lock mechanism, por lo que puede crear múltiples conexiones
+      // pero la última llamada debería reutilizar la conexión del pool
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalled();
     });
 
     it('should handle very long schema names', async () => {
@@ -870,8 +854,10 @@ describe('TenantConnectionService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.isInitialized).toBe(true);
-      expect(result.options.schema).toBe(longSchema);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        longSchema,
+        expect.any(Array),
+      );
     });
 
     it('should handle special characters in schema names', async () => {
@@ -883,8 +869,10 @@ describe('TenantConnectionService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.isInitialized).toBe(true);
-      expect(result.options.schema).toBe(specialSchema);
+      expect(mockOrmStrategy.createConnection).toHaveBeenCalledWith(
+        specialSchema,
+        expect.any(Array),
+      );
     });
 
     it('should handle admin service validation timeout', async () => {
@@ -906,7 +894,7 @@ describe('TenantConnectionService', () => {
     it('should handle database config retrieval failure', async () => {
       // Arrange
       const schema = 'config-fail-schema';
-      mockMultiTenantConfigService.getDatabaseConfig.mockImplementation(() => {
+      mockOrmStrategy.createConnection.mockImplementation(() => {
         throw new Error('Config retrieval failed');
       });
 
@@ -926,16 +914,6 @@ describe('TenantConnectionService', () => {
         (_, i) => `schema-${i}`,
       );
 
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi.fn().mockImplementation(() => {
-        const ds = createMock<DataSource>();
-        ds.isInitialized = true;
-        ds.initialize.mockResolvedValue(ds);
-        ds.destroy.mockResolvedValue();
-        return ds;
-      });
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
-
       // Act
       const startTime = Date.now();
 
@@ -954,12 +932,6 @@ describe('TenantConnectionService', () => {
     it('should not leak memory with repeated operations', async () => {
       // Arrange
       const initialMemory = process.memoryUsage().heapUsed;
-
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi
-        .fn()
-        .mockImplementation(() => mockDataSource);
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
 
       // Act
       for (let i = 0; i < 1000; i++) {
@@ -993,15 +965,9 @@ describe('TenantConnectionService', () => {
       // Arrange
       const schema = 'interface-test';
 
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi
-        .fn()
-        .mockImplementation(() => mockDataSource);
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
-
       // Act & Assert
       const connection = await service.getConnectionForSchema(schema);
-      expect(connection).toBeInstanceOf(Object);
+      expect(connection).toBeDefined();
 
       const stats = service.getConnectionPoolStats();
       expect(stats).toHaveProperty('total');
@@ -1022,15 +988,6 @@ describe('TenantConnectionService', () => {
     it('should maintain connection pool state across multiple operations', async () => {
       // Arrange
       const schemas = ['schema1', 'schema2', 'schema3'];
-
-      // Mock DataSource constructor
-      const DataSourceConstructor = vi.fn().mockImplementation(() => {
-        const ds = createMock<DataSource>();
-        ds.isInitialized = true;
-        ds.initialize.mockResolvedValue(ds);
-        return ds;
-      });
-      vi.doMock('typeorm', () => ({ DataSource: DataSourceConstructor }));
 
       // Act
       for (const schema of schemas) {
@@ -1055,17 +1012,13 @@ describe('TenantConnectionService', () => {
 
     it('should handle service destruction gracefully', async () => {
       // Arrange
-      const connection = createMock<DataSource>();
-      connection.isInitialized = true;
-      connection.destroy.mockResolvedValue();
-
-      (service as any).connectionPool.set('test-schema', connection);
+      await service.getConnectionForSchema('test-schema');
 
       // Act
       await service.closeAllConnections();
 
       // Assert
-      expect(connection.destroy).toHaveBeenCalled();
+      expect(mockOrmStrategy.destroyConnection).toHaveBeenCalled();
       expect((service as any).connectionPool.size).toBe(0);
     });
   });

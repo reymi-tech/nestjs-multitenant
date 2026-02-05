@@ -58,6 +58,12 @@ describe('tenant-repository.provider', () => {
     hasTenant: true,
   };
 
+  // Mock para simular una conexión TypeORM
+  const mockTypeOrmConnection = {
+    dataSource: undefined as unknown as DataSource,
+    type: 'typeorm' as const,
+  };
+
   beforeEach(() => {
     // Crear mocks de servicios
     mockTenantConnectionService = createMock<ITenantConnectionService>();
@@ -65,11 +71,16 @@ describe('tenant-repository.provider', () => {
     mockDataSource = createMock<DataSource>();
     mockRepository = createMock<Repository<any>>();
 
+    // Configurar el mock de conexión para simular TypeORM
+    mockTypeOrmConnection.dataSource = mockDataSource;
+
     // Configurar comportamiento por defecto de los mocks
     mockTenantContextService.getContext.mockReturnValue(mockTenantContext);
     mockDataSource.getRepository.mockReturnValue(mockRepository);
+
+    // Ahora getConnectionForSchema debe retornar el mock de conexión TypeORM
     mockTenantConnectionService.getConnectionForSchema.mockResolvedValue(
-      mockDataSource,
+      mockTypeOrmConnection,
     );
 
     // Limpiar todos los mocks
@@ -186,6 +197,33 @@ describe('tenant-repository.provider', () => {
             mockTenantContextService,
           ),
         ).rejects.toThrow('Connection failed');
+      });
+
+      // Nueva prueba: verificar que lance error cuando la conexión no es TypeORM
+      it('debería lanzar error cuando la conexión no es TypeORM', async () => {
+        // Arrange
+        const entity = MockUserEntity;
+        const provider = createTenantRepositoryProvider(entity);
+
+        // Simular una conexión Drizzle (no TypeORM)
+        const drizzleConnection = {
+          db: {} as any,
+          type: 'drizzle' as const,
+        };
+
+        mockTenantConnectionService.getConnectionForSchema.mockResolvedValue(
+          drizzleConnection,
+        );
+
+        // Act & Assert
+        await expect(
+          provider.useFactory!(
+            mockTenantConnectionService,
+            mockTenantContextService,
+          ),
+        ).rejects.toThrow(
+          'Cannot create TypeORM repository with non-TypeORM connection',
+        );
       });
     });
   });
@@ -322,6 +360,30 @@ describe('tenant-repository.provider', () => {
           ),
         ).rejects.toThrow('DataSource connection failed');
       });
+
+      // Nueva prueba: verificar que lance error cuando la conexión no es TypeORM
+      it('debería lanzar error cuando la conexión no es TypeORM', async () => {
+        // Arrange
+        // Simular una conexión Drizzle (no TypeORM)
+        const drizzleConnection = {
+          db: {} as any,
+          type: 'drizzle' as const,
+        };
+
+        mockTenantConnectionService.getConnectionForSchema.mockResolvedValue(
+          drizzleConnection,
+        );
+
+        // Act & Assert
+        await expect(
+          TenantDataSourceProvider.useFactory!(
+            mockTenantConnectionService,
+            mockTenantContextService,
+          ),
+        ).rejects.toThrow(
+          'Cannot provide TypeORM DataSource with non-TypeORM connection',
+        );
+      });
     });
   });
 
@@ -419,6 +481,34 @@ describe('tenant-repository.provider', () => {
         expect(
           mockTenantConnectionService.getConnectionForSchema,
         ).toHaveBeenCalledWith('tenant_company-123');
+      });
+
+      // Nueva prueba: verificar que lance error cuando la conexión no es TypeORM
+      it('debería lanzar error cuando la conexión no es TypeORM', async () => {
+        // Arrange
+        const entity = MockUserEntity;
+        const tenantId = 'specific-tenant';
+        const provider = createSpecificTenantRepositoryProvider(
+          entity,
+          tenantId,
+        );
+
+        // Simular una conexión Drizzle (no TypeORM)
+        const drizzleConnection = {
+          db: {} as any,
+          type: 'drizzle' as const,
+        };
+
+        mockTenantConnectionService.getConnectionForSchema.mockResolvedValue(
+          drizzleConnection,
+        );
+
+        // Act & Assert
+        await expect(
+          provider.useFactory!(mockTenantConnectionService),
+        ).rejects.toThrow(
+          'Cannot create TypeORM repository with non-TypeORM connection',
+        );
       });
     });
   });
@@ -521,6 +611,29 @@ describe('tenant-repository.provider', () => {
         // Act & Assert
         await expect(factory('failing-tenant')).rejects.toThrow(
           'Factory connection failed',
+        );
+      });
+
+      // Nueva prueba: verificar que lance error cuando la conexión no es TypeORM
+      it('debería lanzar error cuando la conexión no es TypeORM', async () => {
+        // Arrange
+        const entity = MockUserEntity;
+        const provider = createTenantRepositoryFactory(entity);
+        const factory = provider.useFactory!(mockTenantConnectionService);
+
+        // Simular una conexión Drizzle (no TypeORM)
+        const drizzleConnection = {
+          db: {} as any,
+          type: 'drizzle' as const,
+        };
+
+        mockTenantConnectionService.getConnectionForSchema.mockResolvedValue(
+          drizzleConnection,
+        );
+
+        // Act & Assert
+        await expect(factory('drizzle-tenant')).rejects.toThrow(
+          'Cannot create TypeORM repository with non-TypeORM connection',
         );
       });
     });

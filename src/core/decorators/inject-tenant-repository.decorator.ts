@@ -7,7 +7,9 @@ import {
 } from '../utils/generate-token.provider';
 
 /**
- * Inject the tenant repository for the specified entity.
+ * Inject the tenant repository for the specified entity (TypeORM only).
+ * This decorator should only be used when the module is configured with TypeORM.
+ *
  * @param entity The entity target.
  * @returns The parameter decorator.
  *
@@ -29,7 +31,9 @@ export function InjectTenantRepository<T>(
 }
 
 /**
- * Inject the tenant data source.
+ * Inject the tenant data source (TypeORM only).
+ * This decorator should only be used when the module is configured with TypeORM.
+ *
  * @returns The parameter decorator.
  *
  * @example
@@ -48,7 +52,9 @@ export function InjectTenantDataSource(): ParameterDecorator {
 }
 
 /**
- * Inject the tenant repository factory for the specified entity.
+ * Inject the tenant repository factory for the specified entity (TypeORM only).
+ * This decorator should only be used when the module is configured with TypeORM.
+ *
  * @param entity The entity target.
  * @returns The parameter decorator.
  *
@@ -58,8 +64,13 @@ export function InjectTenantDataSource(): ParameterDecorator {
  * export class UserService {
  *   constructor(
  *     @InjectTenantRepositoryFactory(User)
- *     private readonly userRepositoryFactory: RepositoryFactory<User>,
+ *     private readonly userRepositoryFactory: (tenantId: string) => Promise<Repository<User>>,
  *   ) {}
+ *
+ *   async getUsersForTenant(tenantId: string) {
+ *     const userRepo = await this.userRepositoryFactory(tenantId);
+ *     return userRepo.find();
+ *   }
  * }
  * ```
  */

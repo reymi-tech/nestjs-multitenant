@@ -18,7 +18,7 @@ import { TenantAdminService } from '../../../../src/admin/services/tenant-admin.
 import { EntityRegistry } from '../../../../src/config/entity.registry';
 import { EntityName, TenantStatus } from '../../../../src/constants';
 import { IMultiTenantConfigService } from '../../../../src/core/interfaces/tenant.interface';
-import { LocalTenantValidationStrategy } from '../../../../src/core/strategies/local-tenant-validation.strategy';
+import { LocalTenantValidationStrategy } from '../../../../src/core/strategies/validation/local-tenant-validation.strategy';
 import { createMock, Mock } from '../../../utils/mock';
 
 // Factory functions para crear datos de prueba

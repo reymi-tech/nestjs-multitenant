@@ -5,25 +5,27 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DataSource, DataSourceOptions } from 'typeorm';
 
-import {
-  ITenantValidationStrategy,
-  TENANT_VALIDATION_STRATEGY,
-} from '../../admin/interfaces/tenant-validation.interface';
-import { getMultiTenantDatabaseConfig } from '../../config/database.config';
 import { EntityName } from '../../constants';
+import {
+  IOrmStrategy,
+  TenantOrmConnection,
+} from '../interfaces/orm-abstraction.interface';
 import {
   IMultiTenantConfigService,
   ITenantConnectionService,
   ITenantContextService,
 } from '../interfaces/tenant.interface';
+import {
+  ITenantValidationStrategy,
+  TENANT_VALIDATION_STRATEGY,
+} from '../interfaces/tenant-validation.interface';
 import { IConnectionPoolStats } from '../interfaces/typeorm.interface';
 import { MULTI_TENANT_CONFIG_SERVICE } from './multi-tenant-config.service';
 import { TENANT_CONTEXT_SERVICE } from './tenant-context.service';
 
 export const TENANT_CONNECTION_SERVICE = Symbol('ITenantConnectionService');
+export const ORM_STRATEGY = Symbol('IOrmStrategy');
 
 /**
  * Service to manage tenant connections and connection pooling.
@@ -32,20 +34,21 @@ export const TENANT_CONNECTION_SERVICE = Symbol('ITenantConnectionService');
 @Injectable()
 export class TenantConnectionService implements ITenantConnectionService {
   private readonly logger = new Logger(TenantConnectionService.name);
-  private readonly connectionPool = new Map<string, DataSource>();
+  private readonly connectionPool = new Map<string, TenantOrmConnection>();
   private readonly maxConnections: number;
   private readonly enableCleanup: boolean;
   private readonly cleanupInterval: number;
   private cleanupTimer?: NodeJS.Timeout;
 
   constructor(
-    private readonly configService: ConfigService,
-
     @Inject(TENANT_CONTEXT_SERVICE)
     private readonly tenantContextService: ITenantContextService,
 
     @Inject(MULTI_TENANT_CONFIG_SERVICE)
     private readonly multiTenantConfigService: IMultiTenantConfigService,
+
+    @Inject(ORM_STRATEGY)
+    private readonly ormStrategy: IOrmStrategy,
 
     @Inject(TENANT_VALIDATION_STRATEGY)
     @Optional()
@@ -56,12 +59,18 @@ export class TenantConnectionService implements ITenantConnectionService {
     this.enableCleanup = poolConfig.enableCleanup !== false;
     this.cleanupInterval = poolConfig.cleanupInterval || 60_000; // Default 1 minute
 
+    this.logger.log(`Initialized with ORM strategy: ${this.ormStrategy.type}`);
+
     if (this.enableCleanup) {
       this.startCleanupTimer();
     }
   }
 
-  async getConnectionForSchema(schema: string): Promise<DataSource> {
+  /**
+   * Get a connection for the specified schema
+   * Returns the appropriate ORM connection (TypeORM DataSource or Drizzle DB)
+   */
+  async getConnectionForSchema(schema: string): Promise<TenantOrmConnection> {
     if (
       schema !== 'public' &&
       schema !== 'default' &&
@@ -79,10 +88,10 @@ export class TenantConnectionService implements ITenantConnectionService {
     // Check if connection already exists in pool
     if (this.connectionPool.has(schema)) {
       const existingConnection = this.connectionPool.get(schema)!;
-      if (existingConnection.isInitialized) {
+      if (this.ormStrategy.isConnectionValid(existingConnection)) {
         return existingConnection;
       } else {
-        // Remove uninitialized connection
+        // Remove invalid connection
         this.connectionPool.delete(schema);
       }
     }
@@ -95,12 +104,14 @@ export class TenantConnectionService implements ITenantConnectionService {
       await this.cleanupOldConnections();
     }
 
-    // Create new connection
-    const dataSource = await this.createConnection(schema);
+    // Create new connection using the ORM strategy
+    const connection = await this.createConnection(schema);
 
-    this.connectionPool.set(schema, dataSource);
-    this.logger.log(`Created new connection for schema: ${schema}`);
-    return dataSource;
+    this.connectionPool.set(schema, connection);
+    this.logger.log(
+      `Created new ${this.ormStrategy.type} connection for schema: ${schema}`,
+    );
+    return connection;
   }
 
   private async cleanupOldConnections() {
@@ -110,9 +121,7 @@ export class TenantConnectionService implements ITenantConnectionService {
     for (let i = 0; i < connectionsToRemove && i < connections.length; i++) {
       const [schema, connection] = connections[i];
       try {
-        if (connection.isInitialized) {
-          await connection.destroy();
-        }
+        await this.ormStrategy.destroyConnection(connection);
         this.connectionPool.delete(schema);
         this.logger.log(`Cleaned up connection for schema: ${schema}`);
       } catch (error) {
@@ -124,40 +133,17 @@ export class TenantConnectionService implements ITenantConnectionService {
     }
   }
 
-  private async createConnection(schema: string): Promise<DataSource> {
+  private async createConnection(schema: string): Promise<TenantOrmConnection> {
     const enabledEntities =
       schema === 'public'
         ? undefined
         : await this.getTenantEntityConfig(schema);
 
     this.logger.debug(
-      `Enabled entities for tenant ${schema}: with entities: ${enabledEntities}`,
+      `Enabled entities for tenant ${schema}: ${enabledEntities?.join(', ') || 'all'}`,
     );
 
-    const databaseConfig = this.multiTenantConfigService.getDatabaseConfig();
-    const config = getMultiTenantDatabaseConfig(
-      this.configService,
-      schema,
-      enabledEntities,
-      databaseConfig,
-    ) as DataSourceOptions;
-
-    const dataSource = new DataSource({
-      ...config,
-      name: `tenant_${schema}`,
-    });
-
-    try {
-      await dataSource.initialize();
-      this.logger.log(`Connection initialized for schema: ${schema}`);
-      return dataSource;
-    } catch (error) {
-      this.logger.error(
-        `Failed to create connection for schema ${schema}:`,
-        error,
-      );
-      throw error;
-    }
+    return this.ormStrategy.createConnection(schema, enabledEntities);
   }
 
   private async getTenantEntityConfig(
@@ -180,11 +166,11 @@ export class TenantConnectionService implements ITenantConnectionService {
 
   private startCleanupTimer() {
     this.cleanupTimer = setInterval(() => {
-      this.performScheduledClenup();
+      this.performScheduledCleanup();
     }, this.cleanupInterval);
   }
 
-  private async performScheduledClenup() {
+  private async performScheduledCleanup() {
     // This is a simplified cleanup - in a real implementation,
     // you would track connection usage and idle time
     if (this.connectionPool.size > this.maxConnections * 0.8) {
@@ -192,8 +178,8 @@ export class TenantConnectionService implements ITenantConnectionService {
     }
   }
 
-  // Secundary methods
-  async getTenantConnection(): Promise<DataSource> {
+  // Secondary methods
+  async getTenantConnection(): Promise<TenantOrmConnection> {
     const schema = this.tenantContextService.getTenantSchema();
     if (!schema) {
       throw new Error('No tenant context available');
@@ -206,11 +192,9 @@ export class TenantConnectionService implements ITenantConnectionService {
       clearInterval(this.cleanupTimer);
     }
 
-    const closePromises = [...this.connectionPool.values()].map(
-      async connection => {
-        if (connection.isInitialized) {
-          await connection.destroy();
-        }
+    const closePromises = [...this.connectionPool.entries()].map(
+      async ([, connection]) => {
+        await this.ormStrategy.destroyConnection(connection);
       },
     );
 
@@ -220,8 +204,8 @@ export class TenantConnectionService implements ITenantConnectionService {
   }
 
   getConnectionPoolStats(): IConnectionPoolStats {
-    const active = [...this.connectionPool.values()].filter(
-      connection => connection.isInitialized,
+    const active = [...this.connectionPool.values()].filter(connection =>
+      this.ormStrategy.isConnectionValid(connection),
     ).length;
 
     return {
@@ -236,9 +220,7 @@ export class TenantConnectionService implements ITenantConnectionService {
     const connection = this.connectionPool.get(schema);
     if (connection) {
       try {
-        if (connection.isInitialized) {
-          await connection.destroy();
-        }
+        await this.ormStrategy.destroyConnection(connection);
         this.connectionPool.delete(schema);
         this.logger.log(`Removed connection for schema: ${schema}`);
       } catch (error) {
@@ -248,5 +230,12 @@ export class TenantConnectionService implements ITenantConnectionService {
         );
       }
     }
+  }
+
+  /**
+   * Get the current ORM type being used
+   */
+  getOrmType(): string {
+    return this.ormStrategy.type;
   }
 }
