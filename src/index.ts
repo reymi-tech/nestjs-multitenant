@@ -19,6 +19,10 @@ export {
 
 // Decorators
 export {
+  InjectTenantDb,
+  InjectTenantDbFactory,
+} from './core/decorators/inject-tenant-db.decorator';
+export {
   InjectTenantDataSource,
   InjectTenantRepository,
   InjectTenantRepositoryFactory,

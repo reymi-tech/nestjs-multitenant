@@ -15,7 +15,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { TenantAdminController } from './admin/controllers/tenant-admin.controller';
 import { Tenant } from './admin/entities/tenant.entity';
@@ -91,7 +91,7 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
     // If using local validation, verify that TypeORM admin is available
     if (ormType === 'typeorm' && this.options.validationStrategy === 'local') {
       try {
-        this.moduleRef.get('admin', { strict: false });
+        this.moduleRef.get(DataSource, { strict: false });
 
         this.logger.log('Admin datasource connection verified successfully');
       } catch {
@@ -479,7 +479,7 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
             optional: true,
           },
           {
-            token: 'admin',
+            token: DataSource,
             optional: true,
           },
           {

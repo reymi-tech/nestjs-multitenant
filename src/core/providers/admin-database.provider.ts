@@ -8,8 +8,9 @@ import { Pool } from 'pg';
 import * as tenantSchema from '../../admin/schema/tenant.schema';
 import { ADMIN_DATABASE } from '../../admin/services/drizzle-tenant-admin.service';
 import { DatabaseConfig } from '../interfaces/typeorm.interface';
+import { runDrizzleMigrations } from '../utils/drizzle-migration.helper';
 
-type AdminDatabaseType = NodePgDatabase<typeof tenantSchema>;
+export type AdminDatabaseType = NodePgDatabase<typeof tenantSchema>;
 
 /**
  * Creates the admin database provider for Drizzle ORM
@@ -76,13 +77,19 @@ function buildConnectionString(config: DatabaseConfig): string {
  */
 export const AdminDatabaseProvider: Provider = {
   provide: ADMIN_DATABASE,
-  useFactory: (configService: ConfigService): AdminDatabaseType => {
+  useFactory: async (
+    configService: ConfigService,
+  ): Promise<AdminDatabaseType> => {
     const host = configService.get<string>('DB_HOST', 'localhost');
     const port = configService.get<number>('DB_PORT', 5432);
     const username = configService.get<string>('DB_USERNAME', 'postgres');
     const password = configService.get<string>('DB_PASSWORD', 'password');
     const database = configService.get<string>('DB_DATABASE', 'multitenant_db');
     const logging = configService.get<boolean>('DB_LOGGING', false);
+    const runMigrationsOnStart = configService.get<boolean>(
+      'MULTITENANT_RUN_ADMIN_MIGRATIONS',
+      true,
+    );
 
     const connectionString = `postgresql://${username}:${password}@${host}:${port}/${database}?schema=public`;
 
@@ -93,10 +100,16 @@ export const AdminDatabaseProvider: Provider = {
       connectionTimeoutMillis: 2000,
     });
 
-    return drizzle(pool, {
+    const db = drizzle(pool, {
       schema: tenantSchema,
       logger: logging,
     }) as AdminDatabaseType;
+
+    await runDrizzleMigrations(db, {
+      enabled: runMigrationsOnStart,
+    });
+
+    return db;
   },
   inject: [ConfigService],
 };

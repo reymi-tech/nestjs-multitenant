@@ -15,7 +15,7 @@
   },
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cpx \"drizzle/**/*\" dist/drizzle",
     "build:watch": "tsc --watch",
     "prepublishOnly": "node --run build && node --run test:unit",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -92,6 +92,8 @@
     "@typescript-eslint/parser": "^8.46.3",
     "@vitest/coverage-v8": "^4.0.7",
     "concurrently": "^9.2.1",
+    "cpx": "^1.5.0",
+    "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
