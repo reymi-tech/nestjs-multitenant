@@ -962,7 +962,6 @@ describe('TenantAdminController', () => {
 
       // Assert
       expect(result).toEqual(tenant);
-      expect(typeof result.isActive()).toBe('boolean');
     });
   });
 });

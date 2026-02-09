@@ -2,9 +2,10 @@ import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { TenantFilterDto } from '../dto/filter-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
 import { Tenant } from '../entities/tenant.entity';
+import { Tenant as TenantSchema } from '../schema/tenant.schema';
 
 export interface FindAllTenants {
-  data: Tenant[];
+  data: Tenant[] | TenantSchema[];
   meta: {
     total: number;
     page: number;
@@ -22,23 +23,26 @@ export interface TenantStats {
 }
 
 export interface ITenantAdminController {
-  create(tenantDto: CreateTenantDto): Promise<Tenant>;
+  create(tenantDto: CreateTenantDto): Promise<Tenant | TenantSchema>;
 
   findAll(filterDto: TenantFilterDto): Promise<FindAllTenants>;
 
-  findOne(id: string): Promise<Tenant>;
+  findOne(id: string): Promise<Tenant | TenantSchema>;
 
-  update(id: string, updateTenantDto: UpdateTenantDto): Promise<Tenant>;
+  update(
+    id: string,
+    updateTenantDto: UpdateTenantDto,
+  ): Promise<Tenant | TenantSchema>;
 
   remove(id: string): Promise<void>;
 
   getStats(): Promise<TenantStats>;
 
-  activate(id: string): Promise<Tenant>;
+  activate(id: string): Promise<Tenant | TenantSchema>;
 
-  deactivate(id: string): Promise<Tenant>;
+  deactivate(id: string): Promise<Tenant | TenantSchema>;
 
-  findByCode(code: string): Promise<Tenant>;
+  findByCode(code: string): Promise<Tenant | TenantSchema>;
 
   validate(code: string): Promise<{ exists: boolean }>;
 }

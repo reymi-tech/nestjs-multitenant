@@ -2,8 +2,8 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-import { Tenant } from '../../admin/entities/tenant.entity';
-import { ITenantValidationStrategy } from '../../admin/interfaces/tenant-validation.interface';
+import { Tenant } from '../../../admin/entities/tenant.entity';
+import { ITenantValidationStrategy } from '../../interfaces/tenant-validation.interface';
 
 @Injectable()
 export class RemoteTenantValidationStrategy

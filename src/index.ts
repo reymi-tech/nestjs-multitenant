@@ -19,6 +19,10 @@ export {
 
 // Decorators
 export {
+  InjectTenantDb,
+  InjectTenantDbFactory,
+} from './core/decorators/inject-tenant-db.decorator';
+export {
   InjectTenantDataSource,
   InjectTenantRepository,
   InjectTenantRepositoryFactory,
@@ -41,7 +45,6 @@ export {
   ITenantManagementStrategy,
   TENANT_MANAGEMENT_STRATEGY,
 } from './admin/interfaces/tenant-management.interface';
-export { TENANT_VALIDATION_STRATEGY } from './admin/interfaces/tenant-validation.interface';
 export {
   IEntityConfig,
   IMultiTenantConfigService,
@@ -60,6 +63,7 @@ export {
   TenantExpressRequest,
   TenantFastifyRequest,
 } from './core/interfaces/tenant-middleware.interface';
+export { TENANT_VALIDATION_STRATEGY } from './core/interfaces/tenant-validation.interface';
 
 // Enums
 // export { Platform } from "./enums/platform.enum";
