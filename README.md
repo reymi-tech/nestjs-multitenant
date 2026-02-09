@@ -10,6 +10,8 @@ y configuración tipada.
 ## 🚀 Características
 
 - **Arquitectura Schema-per-Tenant**: Cada tenant tiene su propio esquema de base de datos
+- **Soporte Multi-ORM**: Compatible con TypeORM y Drizzle ORM
+- **Migraciones Automáticas**: Migraciones internas para módulo admin (solo Drizzle)
 - **Resolución Automática de Tenants**: Soporte para múltiples estrategias (header, subdomain, JWT, custom)
 - **Pool de Conexiones Dinámico**: Gestión eficiente de conexiones por tenant
 - **Inyección de Repositorios**: Decoradores para inyectar repositorios específicos del tenant
@@ -28,11 +30,22 @@ pnpm add nestjs-multitenant
 
 ### Dependencias Peer
 
+Para **TypeORM** (opción tradicional):
+
 ```bash
 npm install @nestjs/common @nestjs/core @nestjs/typeorm @nestjs/config typeorm pg
 ```
 
+Para **Drizzle ORM** (recomendado para mejor control de migraciones):
+
+```bash
+npm install @nestjs/common @nestjs/core @nestjs/config drizzle-orm pg
+npm install -D drizzle-kit
+```
+
 > Requisitos: Node.js >= 22, TypeScript >= 5.9, NestJS 11
+
+> **📌 Importante**: Drizzle ORM es recomendado para multi-tenancy avanzado. Ver [Migraciones con Drizzle](https://reymi-tech.github.io/nestjs-multitenant/docs/guides/migrations) para más detalles.
 
 ## 🛠️ Configuración Básica
 
@@ -247,11 +260,16 @@ DB_DATABASE=multitenant_db
 TENANT_HEADER=x-tenant-id
 AUTO_CREATE_SCHEMAS=true
 ENABLE_ADMIN_MODULE=true
+MULTITENANT_RUN_ADMIN_MIGRATIONS=true  # Para Drizzle (default: true)
 ```
+
+> **📌 Nota**: `MULTITENANT_RUN_ADMIN_MIGRATIONS` controla las migraciones automáticas del módulo admin (solo para Drizzle ORM).
 
 ## 🏗️ Uso del Sistema
 
 ### Definir Entidades
+
+**Para TypeORM:**
 
 ```typescript
 // entities/user.entity.ts
@@ -272,6 +290,26 @@ export class User {
   createdAt: Date;
 }
 ```
+
+**Para Drizzle ORM:**
+
+```typescript
+// entities/user.entity.ts
+import { pgTable, uuid, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { prefixSchema } from 'nestjs-multitenant';
+
+// Usar el patrón de schemas recomendado
+export const userSchema = prefixSchema('tenant_example');
+
+export const users = userSchema.table('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+```
+
+> **📖 Drizzle Setup**: Para guía completa de configuración de Drizzle, ver [Setup PostgreSQL](https://reymi-tech.github.io/nestjs-multitenant/docs/guides/setup-postgres)
 
 ### Registrar Entidades
 
@@ -454,6 +492,79 @@ export class MultiTenantService {
 }
 ```
 
+## 🔄 Migraciones con Drizzle ORM
+
+Para proyectos con Drizzle ORM, el módulo incluye capacidades avanzadas de migración:
+
+### Configuración Automática
+
+El módulo gestiona automáticamente las migraciones del schema de administración:
+
+```typescript
+// drizzle.config.ts
+import type { Config } from 'drizzle-kit';
+
+export default {
+  schema: './src/entities/**/*.ts',
+  out: './drizzle',
+  driver: 'pg',
+  dbCredentials: {
+    url: process.env.DATABASE_URL,
+  },
+} satisfies Config;
+```
+
+### Flujo de Trabajo
+
+1. **Generar migración**: `drizzle-kit generate`
+2. **Aplicar migración**: `drizzle-kit migrate`
+3. **Migraciones admin**: Automáticas controladas por `MULTITENANT_RUN_ADMIN_MIGRATIONS`
+
+> **📖 Guía Completa**: Ver [Migraciones con Drizzle](https://reymi-tech.github.io/nestjs-multitenant/docs/guides/migrations) para detalles completos.
+
+### Problemas Comunes
+
+#### Errores de Migración con Drizzle
+
+**Problema**: Las migraciones de tenant no se aplican correctamente.
+
+**Solución**: Asegúrate de seguir el patrón `prefixSchema`:
+
+```typescript
+const prefixSchema = (schema: string) => pgSchema(`tenant_${schema}`);
+export const tenantSchema = prefixSchema('your-tenant-id');
+```
+
+**Problema**: Migraciones del módulo admin no se ejecutan.
+
+**Solución**: Verifica la variable de entorno:
+
+```env
+MULTITENANT_RUN_ADMIN_MIGRATIONS=true
+```
+
+#### Conexión a Base de Datos
+
+**Problema**: Errores de conexión o timeout.
+
+**Solución**: Verifica la configuración de la base de datos y asegúrate de que PostgreSQL esté ejecutándose:
+
+```typescript
+MultiTenantModule.forRoot({
+  database: {
+    host: 'localhost',
+    port: 5432,
+    username: 'postgres',
+    password: 'password',
+    database: 'multitenant_db',
+    // Opcional: configuración adicional
+    ssl: false,
+    synchronize: true, // Solo en desarrollo
+    logging: true, // Para debug
+  },
+});
+```
+
 ## 🔧 Resolución de Problemas
 
 ### Error: "Nest can't resolve dependencies of the TypeOrmModuleOptions"
@@ -501,8 +612,17 @@ MultiTenantModule.forRootAsync({
 
 **Solución**: Instala las dependencias requeridas:
 
+**Para TypeORM:**
+
 ```bash
 npm install @nestjs/common @nestjs/core @nestjs/typeorm @nestjs/config typeorm pg
+```
+
+**Para Drizzle ORM:**
+
+```bash
+npm install @nestjs/common @nestjs/core @nestjs/config drizzle-orm pg
+npm install -D drizzle-kit
 ```
 
 ### Problemas de Conexión a Base de Datos
