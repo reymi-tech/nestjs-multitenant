@@ -2,7 +2,6 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -18,6 +17,10 @@ import {
 } from '../../admin/interfaces/tenant-admin.interface';
 import { EntityRegistry } from '../../config/entity.registry';
 import { EntityName, REGEX_TENANT_NAME, TenantStatus } from '../../constants';
+import {
+  TenantConflictError,
+  TenantValidationError,
+} from '../../core/exceptions/custom-errors';
 import {
   IEntityConfig,
   IMultiTenantConfigService,
@@ -74,14 +77,15 @@ export class DrizzleTenantAdminService implements ITenantAdminService {
       .limit(1);
 
     if (existingTenant) {
-      throw new ConflictException(
+      throw new TenantConflictError(
         `Tenant with code ${tenantCode} already exists`,
       );
     }
 
     // Validate schema name
     if (!this.isValidSchemaName(tenantCode)) {
-      throw new ConflictException(
+      throw new TenantValidationError(
+        ['Invalid schema name'],
         `Tenant with code ${tenantCode} has an invalid schema name`,
       );
     }

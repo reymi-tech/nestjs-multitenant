@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -12,6 +11,10 @@ import { DataSource, IsNull, Repository } from 'typeorm';
 
 import { EntityRegistry } from '../../config/entity.registry';
 import { EntityName, REGEX_TENANT_NAME, TenantStatus } from '../../constants';
+import {
+  TenantConflictError,
+  TenantValidationError,
+} from '../../core/exceptions/custom-errors';
 import {
   IEntityConfig,
   IMultiTenantConfigService,
@@ -67,14 +70,15 @@ export class TenantAdminService implements ITenantAdminService {
     });
 
     if (existingTenant) {
-      throw new ConflictException(
+      throw new TenantConflictError(
         `Tenant with code ${tenantDto.code} already exists`,
       );
     }
 
     // Double check schema name validity
     if (!this.isValidSchemaName(tenantDto.code)) {
-      throw new ConflictException(
+      throw new TenantValidationError(
+        ['Invalid schema name'],
         `Tenant with code ${tenantDto.code} has an invalid schema name`,
       );
     }
