@@ -3,6 +3,7 @@ export { AdminModule } from './admin/admin.module';
 export { MultiTenantModule } from './multi-tenant.module';
 
 // Services
+export { DrizzleTenantAdminService } from './admin/services/drizzle-tenant-admin.service';
 export { TenantAdminService } from './admin/services/tenant-admin.service';
 export { MultiTenantConfigService } from './core/services/multi-tenant-config.service';
 export { TenantConnectionService } from './core/services/tenant-connection.service';
@@ -42,9 +43,9 @@ export { UpdateTenantDto } from './admin/dto/update-tenant.dto';
 
 // Interfaces
 export {
-  ITenantManagementStrategy,
-  TENANT_MANAGEMENT_STRATEGY,
-} from './admin/interfaces/tenant-management.interface';
+  ITenantAdminService,
+  TENANT_ADMIN_SERVICE,
+} from './admin/interfaces/tenant-admin.interface';
 export {
   IEntityConfig,
   IMultiTenantConfigService,
@@ -109,6 +110,7 @@ export {
 } from './constants';
 
 // Utilities
+export { createTenantControllerFactory } from './core/utils/create-tenant-controller.factory';
 export { createTenantStrategyProvider } from './core/utils/create-tenant-strategy.provider';
 export {
   configureEntityRegistry,

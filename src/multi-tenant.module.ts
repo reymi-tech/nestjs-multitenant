@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpService } from '@nestjs/axios';
 import {
   DynamicModule,
@@ -15,12 +14,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DataSource, Repository } from 'typeorm';
 
 import { TenantAdminController } from './admin/controllers/tenant-admin.controller';
 import { Tenant } from './admin/entities/tenant.entity';
 import { TENANT_ADMIN_SERVICE } from './admin/interfaces/tenant-admin.interface';
-import { TENANT_MANAGEMENT_STRATEGY } from './admin/interfaces/tenant-management.interface';
 import {
   ADMIN_DATABASE,
   DrizzleTenantAdminService,
@@ -28,6 +27,7 @@ import {
 import { TenantAdminService } from './admin/services/tenant-admin.service';
 import { getAdminDatabaseConfig } from './config/database.config';
 import {
+  BuildMultitenantModuleOptions,
   IMultiTenantConfigService,
   MultiTenantModuleAsyncOptions,
   MultiTenantModuleOptions,
@@ -166,25 +166,16 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
           options.enableAdminModule !== false &&
           !options.customProviders?.some(
             p =>
-              (typeof p === 'object' &&
-                'provide' in p &&
-                p.provide === TENANT_ADMIN_SERVICE) ||
-              (typeof p === 'object' &&
-                'provide' in p &&
-                p.provide === TENANT_MANAGEMENT_STRATEGY),
+              typeof p === 'object' &&
+              'provide' in p &&
+              p.provide === TENANT_ADMIN_SERVICE,
           )
         ) {
           // Only use defaults if dev did not provide their own
-          providers.push(
-            {
-              provide: TENANT_ADMIN_SERVICE,
-              useClass: TenantAdminService,
-            },
-            {
-              provide: TENANT_MANAGEMENT_STRATEGY,
-              useClass: TenantAdminService,
-            },
-          );
+          providers.push({
+            provide: TENANT_ADMIN_SERVICE,
+            useClass: TenantAdminService,
+          });
 
           if (!options.customControllers?.length) {
             controllers.push(TenantAdminController);
@@ -198,24 +189,15 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
           options.enableAdminModule !== false &&
           !options.customProviders?.some(
             p =>
-              (typeof p === 'object' &&
-                'provide' in p &&
-                p.provide === TENANT_ADMIN_SERVICE) ||
-              (typeof p === 'object' &&
-                'provide' in p &&
-                p.provide === TENANT_MANAGEMENT_STRATEGY),
+              typeof p === 'object' &&
+              'provide' in p &&
+              p.provide === TENANT_ADMIN_SERVICE,
           )
         ) {
-          providers.push(
-            {
-              provide: TENANT_ADMIN_SERVICE,
-              useClass: DrizzleTenantAdminService,
-            },
-            {
-              provide: TENANT_MANAGEMENT_STRATEGY,
-              useClass: DrizzleTenantAdminService,
-            },
-          );
+          providers.push({
+            provide: TENANT_ADMIN_SERVICE,
+            useClass: DrizzleTenantAdminService,
+          });
 
           if (!options.customControllers?.length) {
             controllers.push(TenantAdminController);
@@ -250,14 +232,6 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
       }
     }
 
-    // Add management strategy if applicable
-    if (
-      (options.validationStrategy === 'local' || !options.validationStrategy) &&
-      options.enableAdminModule !== false
-    ) {
-      exportedProviders.push(TENANT_MANAGEMENT_STRATEGY);
-    }
-
     return {
       module: MultiTenantModule,
       imports,
@@ -287,6 +261,9 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
         useClass: TenantConnectionService,
       },
     ];
+
+    const imports = [...(options.imports || [])];
+    const controllers: Type<unknown>[] = [];
 
     // ORM Strategy Provider
     if (options.ormStrategyProvider) {
@@ -322,29 +299,12 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
       });
     }
 
-    // Add conditional ORM-specific providers
-    asyncProviders.push({
-      provide: 'ORM_SPECIFIC_PROVIDERS',
-      useFactory: (moduleOptions: MultiTenantModuleOptions) => {
-        const ormType = moduleOptions.orm?.type || 'typeorm';
-        const providers: Provider[] = [];
-
-        if (ormType === 'typeorm') {
-          providers.push(TenantDataSourceProvider);
-        } else if (ormType === 'drizzle') {
-          providers.push(TenantDrizzleDbProvider);
-          if (
-            moduleOptions.validationStrategy === 'local' ||
-            !moduleOptions.validationStrategy
-          ) {
-            providers.push(AdminDatabaseProvider);
-          }
-        }
-
-        return providers;
-      },
-      inject: ['MULTI_TENANT_OPTIONS'],
-    });
+    // ORM-specific providers
+    asyncProviders.push(
+      TenantDataSourceProvider,
+      TenantDrizzleDbProvider,
+      AdminDatabaseProvider,
+    );
 
     // Validation strategy
     if (options.validationStrategyProvider) {
@@ -357,7 +317,7 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
           moduleOptions: MultiTenantModuleOptions,
           httpService?: HttpService,
           tenantRepository?: Repository<Tenant>,
-          adminDb?: any,
+          adminDb?: NodePgDatabase,
         ) => {
           const strategy = moduleOptions.validationStrategy || 'local';
           const ormType = moduleOptions.orm?.type || 'typeorm';
@@ -367,6 +327,11 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
               if (!httpService) {
                 throw new Error(
                   'HttpService is required for remote validation strategy. Add HttpModule to imports.',
+                );
+              }
+              if (!moduleOptions.remoteServiceUrl) {
+                throw new Error(
+                  'remoteServiceUrl is required for remote validation strategy.',
                 );
               }
               return new RemoteTenantValidationStrategy(
@@ -427,49 +392,56 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
       });
     }
 
-    // Management strategy if provided
+    // Management strategy (TENANT_ADMIN_SERVICE)
     if (options.managementStrategyProvider) {
       asyncProviders.push(options.managementStrategyProvider);
     } else {
       // Provider conditional for management
       asyncProviders.push({
-        provide: TENANT_MANAGEMENT_STRATEGY,
+        provide: TENANT_ADMIN_SERVICE,
         useFactory: (
           moduleOptions: MultiTenantModuleOptions,
           tenantRepository?: Repository<Tenant>,
-          typeormDataSource?: any,
-          drizzleDb?: any,
+          typeormDataSource?: DataSource,
+          drizzleDb?: NodePgDatabase,
           configService?: IMultiTenantConfigService,
         ) => {
-          if (
-            moduleOptions.validationStrategy === 'local' ||
-            !moduleOptions.validationStrategy
-          ) {
-            const ormType = moduleOptions.orm?.type || 'typeorm';
-
-            if (ormType === 'typeorm') {
-              if (!tenantRepository) {
-                throw new Error(
-                  'TenantRepository required for local admin. Add TypeOrmModule.forFeature([Tenant]) to imports of MultiTenantModule',
-                );
-              }
-              if (!typeormDataSource) {
-                throw new Error(
-                  'DataSource required for local admin. Add TypeOrmModule.forRoot() to imports of AppModule',
-                );
-              }
-              return new TenantAdminService(
-                tenantRepository,
-                typeormDataSource,
-                configService,
-              );
-            } else if (ormType === 'drizzle') {
-              if (!drizzleDb) {
-                throw new Error('Admin database required for Drizzle admin.');
-              }
-              return new DrizzleTenantAdminService(drizzleDb, configService);
-            }
+          // Only create if admin module is enabled
+          if (moduleOptions.enableAdminModule === false) {
+            return;
           }
+
+          const validationStrategy =
+            moduleOptions.validationStrategy || 'local';
+          if (validationStrategy !== 'local') {
+            return;
+          }
+
+          const ormType = moduleOptions.orm?.type || 'typeorm';
+
+          if (ormType === 'typeorm') {
+            if (!tenantRepository) {
+              throw new Error(
+                'TenantRepository required for local admin. Add TypeOrmModule.forFeature([Tenant]) to imports of MultiTenantModule',
+              );
+            }
+            if (!typeormDataSource) {
+              throw new Error(
+                'DataSource required for local admin. Add TypeOrmModule.forRoot() to imports of AppModule',
+              );
+            }
+            return new TenantAdminService(
+              tenantRepository,
+              typeormDataSource,
+              configService,
+            );
+          } else if (ormType === 'drizzle') {
+            if (!drizzleDb) {
+              throw new Error('Admin database required for Drizzle admin.');
+            }
+            return new DrizzleTenantAdminService(drizzleDb, configService);
+          }
+
           return;
         },
         inject: [
@@ -494,29 +466,27 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
       });
     }
 
-    // Load controllers conditionally
-    const controllerLoader: Provider = {
-      provide: 'CONTROLLER_LOADER',
-      useFactory: (moduleOptions: MultiTenantModuleOptions) => {
-        return moduleOptions.customControllers || [];
-      },
-      inject: ['MULTI_TENANT_OPTIONS'],
-    };
-
-    asyncProviders.push(controllerLoader);
+    // FIX: Merge controllers from options
+    // options.controllers are user-provided at configuration time
+    if (options.controllers?.length) {
+      controllers.push(...options.controllers);
+    }
 
     return {
       module: MultiTenantModule,
-      imports: options.imports || [],
+      imports,
       providers: asyncProviders,
-      controllers: options.controllers || [],
+      controllers,
       exports: [
         MULTI_TENANT_CONFIG_SERVICE,
         TENANT_CONTEXT_SERVICE,
         TENANT_CONNECTION_SERVICE,
         TENANT_VALIDATION_STRATEGY,
         ORM_STRATEGY,
-        TENANT_MANAGEMENT_STRATEGY,
+        TENANT_ADMIN_SERVICE,
+        TenantDataSourceProvider,
+        TenantDrizzleDbProvider,
+        ADMIN_DATABASE,
       ],
     };
   }
@@ -598,6 +568,63 @@ export class MultiTenantModule implements NestModule, OnModuleInit {
             };
       }
     }
+  }
+
+  /**
+   * HELPER METHOD: Build properly configured forRootAsync options
+   *
+   * This helper makes it easier for users to configure the module correctly
+   * by handling the complexity of TypeORM/Drizzle setup.
+   */
+  static buildAsyncConfig(
+    config: BuildMultitenantModuleOptions,
+  ): MultiTenantModuleAsyncOptions {
+    const {
+      useFactory,
+      inject,
+      ormType = 'typeorm',
+      enableAdminController = true,
+      additionalImports = [],
+      additionalControllers = [],
+      managementStrategyProvider,
+    } = config;
+
+    const imports = [...additionalImports];
+    const controllers: Type<unknown>[] = [...additionalControllers];
+
+    // Add TypeORM admin imports if needed
+    if (ormType === 'typeorm') {
+      imports.push(
+        TypeOrmModule.forRootAsync({
+          name: 'admin',
+          inject: [ConfigService],
+          useFactory: async (configService: ConfigService) => {
+            // Get database config from the user's factory
+            const moduleOptions = await useFactory(
+              ...(inject || []).map(() => configService),
+            );
+            return getAdminDatabaseConfig(
+              configService,
+              moduleOptions.database,
+            );
+          },
+        }),
+        TypeOrmModule.forFeature([Tenant], 'admin'),
+      );
+    }
+
+    // Add TenantAdminController if admin is enabled
+    if (enableAdminController) {
+      controllers.push(TenantAdminController);
+    }
+
+    return {
+      useFactory,
+      inject,
+      imports,
+      controllers,
+      managementStrategyProvider,
+    };
   }
 
   /**

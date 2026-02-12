@@ -189,6 +189,49 @@ export interface MultiTenantModuleAsyncOptions
   ormStrategyProvider?: Provider;
 }
 
+export interface BuildMultitenantModuleOptions {
+  /**
+   * Factory function for module options
+   */
+  useFactory: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...args: any[]
+  ) => Promise<MultiTenantModuleOptions> | MultiTenantModuleOptions;
+
+  /**
+   * Dependencies to inject into useFactory
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inject?: any[];
+
+  /**
+   * ORM type - determines which imports and controllers to add
+   */
+  ormType?: 'typeorm' | 'drizzle';
+
+  /**
+   * Whether admin module is enabled (defaults to true)
+   */
+  enableAdminController?: boolean;
+
+  /**
+   * Additional imports to include
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  additionalImports?: any[];
+
+  /**
+   * Additional controllers to include
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  additionalControllers?: Type<any>[];
+
+  /**
+   * Custom management strategy provider
+   */
+  managementStrategyProvider?: Provider;
+}
+
 export interface IMultiTenantConfigService {
   getDatabaseConfig(): DatabaseConfig;
   getTenantResolutionConfig(): TenantResolutionConfig;

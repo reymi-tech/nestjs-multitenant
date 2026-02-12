@@ -48,7 +48,11 @@ export async function runDrizzleMigrations(
     );
   }
 
-  await migrate(db, {
-    migrationsFolder: migrationsPath,
-  });
+  try {
+    await migrate(db, {
+      migrationsFolder: migrationsPath,
+    });
+  } catch (error) {
+    console.error('Admin migrations failed', error);
+  }
 }
