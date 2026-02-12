@@ -1,6 +1,6 @@
 {
   "name": "nestjs-multitenant",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A comprehensive multi-tenant solution for NestJS applications with PostgreSQL schema-per-tenant architecture",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
