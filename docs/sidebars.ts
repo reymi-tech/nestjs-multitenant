@@ -22,6 +22,7 @@ const sidebars: SidebarsConfig = {
         'guides/tenant-resolution',
         'guides/migrations',
         'guides/testing',
+        'guides/exception-handling',
       ],
     },
     {

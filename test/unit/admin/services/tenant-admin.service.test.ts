@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource, IsNull, Repository } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +13,10 @@ import {
 import { TenantAdminService } from '../../../../src/admin/services/tenant-admin.service';
 import { EntityRegistry } from '../../../../src/config/entity.registry';
 import { EntityName, TenantStatus } from '../../../../src/constants';
+import {
+  TenantConflictError,
+  TenantValidationError,
+} from '../../../../src/core/exceptions/custom-errors';
 import { IMultiTenantConfigService } from '../../../../src/core/interfaces/tenant.interface';
 import { LocalTenantValidationStrategy } from '../../../../src/core/strategies/validation/local-tenant-validation.strategy';
 import { createMock, Mock } from '../../../utils/mock';
@@ -156,7 +156,7 @@ describe('TenantAdminService', () => {
 
       // Act & Assert
       await expect(service.create(createDto)).rejects.toThrow(
-        ConflictException,
+        TenantConflictError,
       );
       await expect(service.create(createDto)).rejects.toThrow(
         'Tenant with code tenant_tenant_test already exists',
@@ -171,7 +171,7 @@ describe('TenantAdminService', () => {
 
       // Act & Assert
       await expect(service.create(createDto)).rejects.toThrow(
-        ConflictException,
+        TenantValidationError,
       );
       await expect(service.create(createDto)).rejects.toThrow(
         'Tenant with code tenant_tenant_INVALID-CODE! has an invalid schema name',

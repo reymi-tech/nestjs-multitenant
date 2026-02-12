@@ -109,6 +109,27 @@ export {
   TenantStatus,
 } from './constants';
 
+// Exception Handling
+export {
+  ConnectionPoolExhaustedError,
+  ErrorTypeMapper,
+  InvalidConnectionTypeError,
+  InvalidTenantCodeError,
+  MultitenantExceptionFilter,
+  NoTenantContextError,
+  SchemaNotFoundError,
+  StructuredLogger,
+  TenantConflictError,
+  TenantValidationError,
+  TransactionFailedError,
+} from './core/exceptions';
+
+// Interfaces
+export {
+  ErrorResponse,
+  ValidationError,
+} from './core/interfaces/error-response.interface';
+
 // Utilities
 export { createTenantControllerFactory } from './core/utils/create-tenant-controller.factory';
 export { createTenantStrategyProvider } from './core/utils/create-tenant-strategy.provider';
