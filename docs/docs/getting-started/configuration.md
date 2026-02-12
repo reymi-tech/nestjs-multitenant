@@ -172,12 +172,12 @@ import {
 export class AppModule {}
 ```
 
-**Características de este escenario:**
-
-- ✅ Configuración automática de TypeORM admin
-- ✅ `TenantAdminController` incluido por defecto
-- ✅ `TenantAdminService` con funcionalidades completas
-- ✅ Ideal para inicio rápido y desarrollo
+  **Características de este escenario:**
+  
+  - ✅ Configuración automática de TypeORM admin
+  - ✅ `TenantAdminController` incluido por defecto
+  - ✅ `TenantAdminService` con funcionalidades completas
+  - ✅ Ideal para inicio rápido y desarrollo
 
   </TabItem>
   <TabItem value="typeorm-custom">
@@ -239,13 +239,13 @@ import { CustomTenantAdminModule } from './admin/tenant-admin.module';
 export class AppModule {}
 ```
 
-**Características de este escenario:**
-
-- ✅ Configuración automática de TypeORM admin (requerido)
-- ❌ No incluye `TenantAdminController` por defecto
-- ✅ Usa tu controller personalizado
-- ✅ Usa `TenantAdminService` estándar o personalizado
-- ✅ Ideal para personalización de endpoints
+  **Características de este escenario:**
+  
+  - ✅ Configuración automática de TypeORM admin (requerido)
+  - ❌ No incluye `TenantAdminController` por defecto
+  - ✅ Usa tu controller personalizado
+  - ✅ Usa `TenantAdminService` estándar o personalizado
+  - ✅ Ideal para personalización de endpoints
 
   </TabItem>
   <TabItem value="drizzle-custom">
@@ -301,13 +301,13 @@ import { users } from './entities/user.entity';
 export class AppModule {}
 ```
 
-**Características de este escenario:**
-
-- ❌ Sin configuración TypeORM admin (usa Drizzle)
-- ❌ No incluye controller por defecto
-- ✅ Usa tu controller personalizado
-- ✅ Usa `DrizzleTenantAdminService` o personalizado
-- ✅ Ideal para control total de migraciones y schemas
+  **Características de este escenario:**
+  
+  - ❌ Sin configuración TypeORM admin (usa Drizzle)
+  - ❌ No incluye controller por defecto
+  - ✅ Usa tu controller personalizado
+  - ✅ Usa `DrizzleTenantAdminService` o personalizado
+  - ✅ Ideal para control total de migraciones y schemas
 
   </TabItem>
 </Tabs>
