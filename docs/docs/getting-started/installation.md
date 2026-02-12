@@ -4,6 +4,9 @@ title: Installation
 description: Install nestjs-multitenant and configure peer dependencies
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Installation
 
 This guide will help you install `nestjs-multitenant` and configure all required dependencies.
@@ -38,26 +41,53 @@ Using yarn:
 yarn add nestjs-multitenant
 ```
 
-## Install Peer Dependencies
+## Choose Your ORM
 
-The package requires several peer dependencies. Install them all at once:
+The NestJS Multitenant package supports two powerful ORMs. Choose the one that best fits your project needs:
 
-### Using npm
+<Tabs>
+  <TabItem value="drizzle" label="Drizzle ORM (Recommended)">
+
+**Why Drizzle ORM?**
+
+- ✅ Better performance (up to 40% faster)
+- ✅ Smaller bundle size (up to 60% reduction)
+- ✅ Superior TypeScript support
+- ✅ Modern SQL-first approach
+- ✅ Excellent for new projects
+
+### Install Peer Dependencies for Drizzle
 
 ```bash
-npm install @nestjs/common@^11.1.7 \
-            @nestjs/config@^4.0.2 \
-            @nestjs/core@^11.1.7 \
-            @nestjs/mapped-types@^2.1.0 \
-            @nestjs/typeorm@^11.0.0 \
-            class-transformer@^0.5.1 \
-            class-validator@^0.14.2 \
-            pg@^8.16.3 \
-            reflect-metadata@^0.2.2 \
-            typeorm@^0.3.27
+pnpm add @nestjs/common@^11.1.7 \
+         @nestjs/config@^4.0.2 \
+         @nestjs/core@^11.1.7 \
+         @nestjs/mapped-types@^2.1.0 \
+         class-transformer@^0.5.1 \
+         class-validator@^0.14.2 \
+         drizzle-orm@^0.29.0 \
+         pg@^8.16.3 \
+         reflect-metadata@^0.2.2
 ```
 
-### Using pnpm
+### Development Dependencies
+
+```bash
+pnpm add -D drizzle-kit @types/pg
+```
+
+  </TabItem>
+  <TabItem value="typeorm" label="TypeORM (Default)">
+
+**Why TypeORM?**
+
+- ✅ Mature ecosystem
+- ✅ Familiar decorator patterns
+- ✅ Extensive features
+- ✅ Great for existing projects
+- ✅ Default for backward compatibility
+
+### Install Peer Dependencies for TypeORM
 
 ```bash
 pnpm add @nestjs/common@^11.1.7 \
@@ -71,6 +101,15 @@ pnpm add @nestjs/common@^11.1.7 \
          reflect-metadata@^0.2.2 \
          typeorm@^0.3.27
 ```
+
+### Development Dependencies
+
+```bash
+pnpm add -D @types/pg
+```
+
+  </TabItem>
+</Tabs>
 
 ## Platform-Specific Dependencies
 

@@ -4,6 +4,9 @@ title: Introduction
 description: Complete multi-tenant solution for NestJS with PostgreSQL schema-per-tenant architecture
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # NestJS MultiTenant
 
 A comprehensive and production-ready multi-tenant solution for NestJS applications using PostgreSQL's **schema-per-tenant** architecture. Build scalable SaaS applications with complete tenant isolation, dynamic connection management, and a rich set of utilities.
@@ -38,14 +41,37 @@ Ensure data integrity and security by validating tenants against:
 
 Intelligent connection pool management that creates and maintains database connections per tenant on-demand, with automatic cleanup of idle connections.
 
-### Type-Safe Repository Injection
+### Multi-ORM Support
 
-Use familiar TypeORM repositories with tenant-scoped injection through decorators:
+Choose between two powerful ORMs based on your needs:
+
+- **Drizzle ORM** (Recommended): Lightweight, performant, with excellent TypeScript support
+- **TypeORM** (Default): Mature ecosystem with familiar patterns
+
+Learn more about [choosing between ORMs](/docs/core-concepts/orm-comparison)
+
+### Type-Safe Dependency Injection
+
+Use tenant-scoped injection with decorators tailored to your ORM:
+
+<Tabs>
+  <TabItem value="drizzle" label="Drizzle ORM">
+
+```typescript
+@InjectTenantDb()
+private db: NodePgDatabase
+```
+
+  </TabItem>
+  <TabItem value="typeorm" label="TypeORM">
 
 ```typescript
 @InjectTenantRepository(User)
 private userRepository: Repository<User>
 ```
+
+  </TabItem>
+</Tabs>
 
 ### Complete Tenant Administration
 
@@ -96,7 +122,9 @@ If you're building a multi-tenant SaaS application with NestJS and PostgreSQL, t
 - **NestJS**: >= 11.x
 - **TypeScript**: >= 5.9
 - **PostgreSQL**: >= 12.x
-- **TypeORM**: >= 0.3.x
+- **Choose your ORM**:
+  - **Drizzle ORM**: >= 0.29.x (recommended for new projects)
+  - **TypeORM**: >= 0.3.x (default for compatibility)
 
 ## Quick Example
 

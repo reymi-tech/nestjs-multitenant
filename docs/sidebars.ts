@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'core-concepts/architecture',
+        'core-concepts/orm-comparison',
         'core-concepts/tenant-context',
         'core-concepts/connection-pooling',
         'core-concepts/entity-registry',
@@ -63,6 +64,7 @@ const sidebars: SidebarsConfig = {
       label: 'Migration Guides',
       items: [
         'migration-guides/from-database-per-tenant',
+        'migration-guides/from-typeorm-to-drizzle',
         'migration-guides/upgrading',
       ],
     },
