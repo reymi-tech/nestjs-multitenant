@@ -18,16 +18,16 @@ The `nestjs-multitenant` package has different migration approaches depending on
 <Tabs>
   <TabItem value="drizzle" label="Drizzle ORM">
 
-- ✅ **Internal Admin Migrations**: Automatic migrations for the admin schema tenant
-- ✅ **Manual Tenant Migrations**: Full control over your tenant schemas
-- ✅ **Schema-per-tenant Pattern**: Explicit schema naming with prefix
+  - ✅ **Internal Admin Migrations**: Automatic migrations for the admin schema tenant
+  - ✅ **Manual Tenant Migrations**: Full control over your tenant schemas
+  - ✅ **Schema-per-tenant Pattern**: Explicit schema naming with prefix
 
   </TabItem>
   <TabItem value="typeorm" label="TypeORM">
 
-- ✅ **Automatic Synchronization**: Built-in schema sync for development
-- ✅ **Traditional Migrations**: TypeORM's migration system
-- ⚠️ **No Internal Admin Migrations**: Manual admin schema setup required
+  - ✅ **Automatic Synchronization**: Built-in schema sync for development
+  - ✅ **Traditional Migrations**: TypeORM's migration system
+  - ⚠️ **No Internal Admin Migrations**: Manual admin schema setup required
 
   </TabItem>
 </Tabs>
