@@ -106,9 +106,15 @@ export class AppModule {}
 - La propiedad `enableAdminModule`, precargara la clase `TenantAdminService` y solo si la propiedad `customControllers` se encuentra vacia cargara `TenantAdminController`; esto brinda la ventaja de especificar tu propio controller.
 - Puedes omitir la clase precargada `TenantAdminService`, haciendo uso de la propiedad `customProviders` y especificar tu propia implementación.
 
-### 2. Configuración Asíncrona (forRootAsync)
+### 2. Configuración Asíncrona (forRootAsync) - v2.1.0+
 
-Para configuraciones más complejas que requieren inyección de dependencias:
+Para configuraciones dinámicas que requieren inyección de dependencias:
+
+:::note Simplified Configuration (v2.1.0+)
+El método `buildAsyncConfig()` simplifica drásticamente la configuración asíncrona. Ver ejemplos completos en [Configuración Avanzada](https://reymi-tech.github.io/nestjs-multitenant/docs/getting-started/configuration).
+:::
+
+**Configuración recomendada con controller admin por defecto:**
 
 ```typescript
 // app.module.ts
@@ -122,10 +128,8 @@ import {
 
 @Module({
   imports: [
-    // ConfigModule DEBE ser importado ANTES que MultiTenantModule
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    // ⚠️ IMPORTANTE: ConfigModule debe importarse ANTES que MultiTenantModule
+    ConfigModule.forRoot({ isGlobal: true }),
 
     // Conexión principal de la aplicación
     TypeOrmModule.forRoot({
@@ -139,57 +143,55 @@ import {
       synchronize: true,
     }),
 
-    // Conexión de la base de datos admin
-    TypeOrmModule.forRootAsync({
-      name: 'admin',
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) =>
-        getAdminDatabaseConfig(configService),
-    }),
-
-    // Configuración asíncrona del módulo multi-tenant
-    MultiTenantModule.forRootAsync({
-      inject: [ConfigService],
-      imports: [
-        TypeOrmModule.forFeature([Tenant], 'admin'),
-        CustomTenantAdminModule, // Importa tu módulo con controllers, mediante wrapper. Opcion 1
-      ],
-      useFactory: (configService: ConfigService) => ({
-        database: createDatabaseConfigFromEnv(configService),
-        autoCreateSchemas: configService.get<boolean>(
-          'AUTO_CREATE_SCHEMAS',
-          true,
-        ),
-
-        enableAdminModule: configService.get<boolean>(
-          'ENABLE_ADMIN_MODULE',
-          true,
-        ),
-        validationStrategy: 'local',
-        platform: configService.get<string>(
-          'PLATFORM',
-          'express',
-        ) as PlatformType,
-        // customControllers: [CustomTenantAdminController] // Opcion 2
+    // 🆕 Configuración simplificada con buildAsyncConfig (v2.1.0+)
+    MultiTenantModule.forRootAsync(
+      MultiTenantModule.buildAsyncConfig({
+        ormType: 'typeorm',
+        enableAdminController: true, // Incluye controller admin por defecto
+        useFactory: (config: ConfigService) => ({
+          database: createDatabaseConfigFromEnv(config),
+          validationStrategy: 'local',
+          autoCreateSchemas: true,
+          platform: 'fastify',
+        }),
+        inject: [ConfigService],
       }),
-      // controllers: [CustomTenantAdminController], // Opcion 3
-
-      // OPCIÓN: Usa tu propia implementación de management
-      managementStrategyProvider:
-        createTenantStrategyProvider(TenantAdminService), // Garantiza un type-safe
-    }),
+    ),
   ],
 })
 export class AppModule {}
 ```
 
-**Nota importante sobre forRootAsync:**
+**Configuración con controller personalizado:**
 
-- Ahora solo incluye las funcionalidades de administración (`TenantAdminService`), se debera indicar el controlador a usar mediante wrapper, customControllers o controllers.
-- La opción `enableAdminModule` controla solo si `TenantAdminService` funcionalidades están activas en tiempo de ejecución
-- La configuración de base de datos admin se toma directamente de las variables de entorno (no del parámetro `database`)
-- Es ideal para configuraciones que dependen de variables de entorno o servicios externos
-- Puedes omitir la clase Precargada `TenantAdminService` y compartir tu propia implementación mediante la propieadad `managementStrategyProvider`
+```typescript
+// app.module.ts
+MultiTenantModule.forRootAsync(
+  MultiTenantModule.buildAsyncConfig({
+    ormType: 'typeorm',
+    enableAdminController: false, // No incluye controller por defecto
+    additionalImports: [CustomTenantAdminModule], // Importa el módulo personalizado con el controller
+    managementStrategyProvider: createTenantStrategyProvider(
+      CustomTenantAdminService,
+    ),
+    useFactory: (config: ConfigService) => ({
+      database: createDatabaseConfigFromEnv(config),
+      validationStrategy: 'local',
+      autoCreateSchemas: true,
+      platform: 'fastify',
+    }),
+    inject: [ConfigService],
+  }),
+);
+```
+
+**Nota importante sobre buildAsyncConfig (v2.1.0+):**
+
+- 🆕 **Simplificado**: Maneja automáticamente la configuración específica del ORM
+- 🆕 **Type-Safe**: `createTenantControllerFactory()` para validación en tiempo de compilación
+- 🆕 **Flexible**: Soporta TypeORM y Drizzle con la misma API
+- ✅ **Legacy forRootAsync**: Aún disponible pero marcado como deprecated
+- 📖 **Documentación completa**: Ver [Configuración Avanzada](https://reymi-tech.github.io/nestjs-multitenant/docs/getting-started/configuration) para todos los escenarios
 
 ### 3. Registro de Entidades para forRootAsync
 
